@@ -63,7 +63,7 @@ const getHumidityStatus = (h) => {
 };
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
-const CurrentStatusScreen = () => {
+const CurrentStatusScreen = ({ navigation }) => {
   const { theme } = useTheme();
   const { user, profile } = useAuth();
 
@@ -76,22 +76,33 @@ const CurrentStatusScreen = () => {
 
   const channelRef = useRef(null);
 
-  // ── Fetch device list ──────────────────────────────────────────────────────
-  useEffect(() => {
-    const load = async () => {
-      if (USE_MOCK) {
-        setDevices(MOCK_DEVICES);
-        setSelectedDevice(MOCK_DEVICES[0]);
-        return;
-      }
-      const { data } = await getUserDevices(user.id);
-      if (data?.length) {
-        setDevices(data);
-        setSelectedDevice(data[0]);
-      }
-    };
-    load();
+  // ── Fetch device list — runs every time screen comes into focus ───────────
+  const loadDevices = useCallback(async () => {
+    if (USE_MOCK) {
+      setDevices(MOCK_DEVICES);
+      setSelectedDevice(prev => prev ?? MOCK_DEVICES[0]);
+      return;
+    }
+    const { data } = await getUserDevices(user.id);
+    if (data?.length) {
+      setDevices(data);
+      // Keep current selection if it still exists, otherwise default to first
+      setSelectedDevice(prev => {
+        if (prev && data.find(d => d.id === prev.id)) return prev;
+        return data[0];
+      });
+    } else {
+      setDevices([]);
+      setSelectedDevice(null);
+    }
   }, [user]);
+
+  // Reload devices every time this tab is focused
+  useEffect(() => {
+    loadDevices();
+    const unsub = navigation?.addListener('focus', loadDevices);
+    return unsub;
+  }, [loadDevices]);
 
   // ── Fetch latest reading for selected device ───────────────────────────────
   const fetchReading = useCallback(async () => {

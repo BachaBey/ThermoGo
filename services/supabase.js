@@ -2,8 +2,8 @@ import { createClient } from '@supabase/supabase-js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // ─── Replace with your actual Supabase project credentials ───────────────────
-const SUPABASE_URL = 'https://cxanxrjmxvtckfkppmdt.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN4YW54cmpteHZ0Y2tma3BwbWR0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1Mzc5MzAsImV4cCI6MjA4NzExMzkzMH0.nWxFpAwgYDVr70ctrxjVM4j21cmfaxh8n3CKQOXTOtk';
+const SUPABASE_URL = 'https://your-project-id.supabase.co';
+const SUPABASE_ANON_KEY = 'your-anon-key-here';
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
@@ -24,18 +24,24 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
  * profiles.id = auth.users.id (FK constraint)
  */
 export const signUp = async ({ email, password, firstName, lastName, phone }) => {
-  const { data, error } = await supabase.auth.signUp({
+  const { data: authData, error: authError } = await supabase.auth.signUp({
     email,
     password,
-    options: {
-      data: {
-        first_name: firstName,
-        last_name: lastName,
-        phone: phone,
-      },
-    },
   });
-  return { data, error };
+  if (authError) return { data: null, error: authError };
+
+  const userId = authData.user?.id;
+  if (!userId) return { data: null, error: new Error('No user ID returned after signup') };
+
+  const { data: profileData, error: profileError } = await supabase
+    .from('profiles')
+    .insert([{ id: userId, first_name: firstName, last_name: lastName, phone }])
+    .select()
+    .single();
+
+  if (profileError) return { data: null, error: profileError };
+
+  return { data: { user: authData.user, profile: profileData }, error: null };
 };
 
 /** Sign in with email + password */
@@ -59,29 +65,25 @@ export const getProfile = async (userId) => {
     .from('profiles')
     .select('*')
     .eq('id', userId)
-    .limit(1)           // ← safer than .single()
-    .then(res => ({
-      data: res.data?.[0] ?? null,
-      error: res.error,
-    }));
+    .single();
   return { data, error };
 };
 
 export const updateProfile = async (userId, updates) => {
   const { data, error } = await supabase
     .from('profiles')
-    .update(updates)
+    .update(updates)                   // { first_name, last_name, phone }
     .eq('id', userId)
-    .select();          // ← removed .single()
-
-  if (error) return { data: null, error };
-
-  // Return the first row (there should only ever be one)
-  return { data: data?.[0] ?? null, error: null };
+    .select()
+    .single();
+  return { data, error };
 };
 
 // ═════════════════════════════════════════════════════════════════════════════
-// DEVICES  (id uuid PK, device_id text unique, user_id uuid→profiles, connected_at)
+// DEVICES
+// Columns: id uuid PK, device_id text unique, user_id uuid→profiles,
+//          name text, target_temp numeric, target_humidity numeric,
+//          threshold_temp numeric, threshold_humidity numeric, connected_at
 // ═════════════════════════════════════════════════════════════════════════════
 
 /** Fetch all devices for the logged-in user. RLS filters automatically. */
@@ -94,11 +96,30 @@ export const getUserDevices = async (userId) => {
   return { data, error };
 };
 
-/** Register a new device. device_id = hardware text ID, user_id = auth uid. */
-export const addDevice = async (userId, deviceId) => {
+/**
+ * Register a new device with optional metadata.
+ * @param {string} userId
+ * @param {object} fields - { device_id, name, target_temp, target_humidity, threshold_temp, threshold_humidity }
+ */
+export const addDevice = async (userId, fields) => {
   const { data, error } = await supabase
     .from('devices')
-    .insert([{ device_id: deviceId, user_id: userId }])
+    .insert([{ ...fields, user_id: userId }])
+    .select()
+    .single();
+  return { data, error };
+};
+
+/**
+ * Update device metadata (name, targets, thresholds).
+ * @param {string} deviceUuid - devices.id (uuid PK)
+ * @param {object} updates    - any subset of { name, target_temp, target_humidity, threshold_temp, threshold_humidity }
+ */
+export const updateDevice = async (deviceUuid, updates) => {
+  const { data, error } = await supabase
+    .from('devices')
+    .update(updates)
+    .eq('id', deviceUuid)
     .select()
     .single();
   return { data, error };
@@ -178,4 +199,37 @@ export const subscribeToDevices = (onChange) => {
     )
     .subscribe();
   return channel;
+};
+
+// ═════════════════════════════════════════════════════════════════════════════
+// NOTIFICATIONS
+// ═════════════════════════════════════════════════════════════════════════════
+
+/** Fetch all notifications for the user, newest first. */
+export const getNotifications = async (userId) => {
+  const { data, error } = await supabase
+    .from('notifications')
+    .select('*, devices(device_id, name)')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
+  return { data, error };
+};
+
+/** Mark a single notification as read. */
+export const markNotificationRead = async (id) => {
+  const { error } = await supabase
+    .from('notifications')
+    .update({ is_read: true })
+    .eq('id', id);
+  return { error };
+};
+
+/** Mark ALL unread notifications for the user as read. */
+export const markAllNotificationsRead = async (userId) => {
+  const { error } = await supabase
+    .from('notifications')
+    .update({ is_read: true })
+    .eq('user_id', userId)
+    .eq('is_read', false);
+  return { error };
 };

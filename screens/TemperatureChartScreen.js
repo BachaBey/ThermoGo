@@ -561,7 +561,7 @@ const dts = StyleSheet.create({
 // ═════════════════════════════════════════════════════════════════════════════
 // MAIN SCREEN
 // ═════════════════════════════════════════════════════════════════════════════
-const TemperatureChartScreen = () => {
+const TemperatureChartScreen = ({ navigation }) => {
   const { theme } = useTheme();
   const { user }  = useAuth();
 
@@ -605,16 +605,31 @@ const TemperatureChartScreen = () => {
   };
 
   // ── Fetch devices ──────────────────────────────────────────────────────────
-  useEffect(() => {
+  const loadDevices = useCallback(async () => {
     if (USE_MOCK) {
       setDevices(MOCK_DEVICES);
-      setSelectedDevice(MOCK_DEVICES[0]);
+      setSelectedDevice(prev => prev ?? MOCK_DEVICES[0]);
       return;
     }
-    getUserDevices(user.id).then(({ data }) => {
-      if (data?.length) { setDevices(data); setSelectedDevice(data[0]); }
-    });
+    const { data } = await getUserDevices(user.id);
+    if (data?.length) {
+      setDevices(data);
+      setSelectedDevice(prev => {
+        if (prev && data.find(d => d.id === prev.id)) return prev;
+        return data[0];
+      });
+    } else {
+      setDevices([]);
+      setSelectedDevice(null);
+    }
   }, [user]);
+
+  // Reload devices every time this tab is focused
+  useEffect(() => {
+    loadDevices();
+    const unsub = navigation?.addListener('focus', loadDevices);
+    return unsub;
+  }, [loadDevices]);
 
   // ── Fetch history ──────────────────────────────────────────────────────────
   const fetchHistory = useCallback(async () => {

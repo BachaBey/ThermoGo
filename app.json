@@ -1,0 +1,37 @@
+{
+  "expo": {
+    "name": "ThermoGo",
+    "slug": "thermogo",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#006C95"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.thermogo.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#006C95"
+      },
+      "package": "com.thermogo.app"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro",
+      "name": "ThermoGo",
+      "themeColor": "#006C95"
+    },
+    "plugins": [
+      "expo-font"
+    ]
+  }
+}

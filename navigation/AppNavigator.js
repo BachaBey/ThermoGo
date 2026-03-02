@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   Text, TouchableOpacity, StyleSheet,
-  ActivityIndicator, View, Platform,
+  ActivityIndicator, View, Platform, Image,
 } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator }  from '@react-navigation/native-stack';
@@ -59,10 +59,19 @@ const MainTabs = () => {
     </TouchableOpacity>
   );
 
+  const headerLeft = () => (
+    <Image
+      source={require('../assets/icon-nav.png')}
+      style={styles.navLogo}
+      resizeMode="contain"
+    />
+  );
+
   const sharedHeader = {
     headerStyle:         { backgroundColor: theme.navBg },
     headerTitleStyle:    { color: theme.primary, fontSize: FONT_SIZES.lg, fontWeight: '700', letterSpacing: -0.5 },
     headerTintColor:     theme.primary,
+    headerLeft,
     headerRight,
     headerShadowVisible: true,
     headerTitle:         'ThermoGo',
@@ -182,6 +191,11 @@ const styles = StyleSheet.create({
   themeBtn: {
     marginRight: SPACING.base,
     padding:     SPACING.xs,
+  },
+  navLogo: {
+    width:       36,
+    height:      36,
+    marginLeft:  SPACING.sm,
   },
   loader: {
     flex: 1,

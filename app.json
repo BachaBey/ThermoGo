@@ -25,13 +25,23 @@
       "package": "com.thermogo.app"
     },
     "web": {
-      "favicon": "./assets/favicon.png",
       "bundler": "metro",
+      "output": "single",
+      "favicon": "./assets/favicon.png",
       "name": "ThermoGo",
-      "themeColor": "#006C95"
+      "themeColor": "#006C95",
+      "backgroundColor": "#ffffff",
+      "shortName": "ThermoGo",
+      "description": "Monitor your temperature and humidity sensors in real time."
     },
     "plugins": [
-      "expo-font"
+      "expo-font",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow ThermoGo to use the camera to scan device QR codes."
+        }
+      ]
     ]
   }
 }

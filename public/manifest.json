@@ -1,0 +1,25 @@
+{
+  "name": "ThermoGo",
+  "short_name": "ThermoGo",
+  "description": "Monitor your temperature and humidity sensors in real time.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#006C95",
+  "theme_color": "#006C95",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

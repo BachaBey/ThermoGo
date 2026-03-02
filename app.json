@@ -4,7 +4,7 @@
     "slug": "thermogo",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/icon-nav.png",
     "userInterfaceStyle": "automatic",
     "splash": {
       "resizeMode": "contain",
@@ -19,7 +19,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/icon-nav.png",
         "backgroundColor": "#006C95"
       },
       "package": "com.thermogo.app"
@@ -27,11 +27,11 @@
     "web": {
       "bundler": "metro",
       "output": "single",
-      "favicon": "./assets/favicon.png",
+      "favicon": "./assets/icon-nav.png",
       "name": "ThermoGo",
-      "themeColor": "#006C95",
-      "backgroundColor": "#ffffff",
       "shortName": "ThermoGo",
+      "themeColor": "#006C95",
+      "backgroundColor": "#006C95",
       "description": "Monitor your temperature and humidity sensors in real time."
     },
     "plugins": [

@@ -20,28 +20,29 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 // ═════════════════════════════════════════════════════════════════════════════
 
 /**
- * Sign up: creates auth user, then inserts profile row.
- * profiles.id = auth.users.id (FK constraint)
+ * Sign up: creates auth user with metadata.
+ * A database trigger (handle_new_user) automatically creates the profile row.
+ * This avoids RLS issues when email confirmation is enabled.
  */
 export const signUp = async ({ email, password, firstName, lastName, phone }) => {
   const { data: authData, error: authError } = await supabase.auth.signUp({
     email,
     password,
+    options: {
+      data: {
+        first_name: firstName,
+        last_name:  lastName,
+        phone:      phone,
+      },
+    },
   });
+
   if (authError) return { data: null, error: authError };
 
   const userId = authData.user?.id;
   if (!userId) return { data: null, error: new Error('No user ID returned after signup') };
 
-  const { data: profileData, error: profileError } = await supabase
-    .from('profiles')
-    .insert([{ id: userId, first_name: firstName, last_name: lastName, phone }])
-    .select()
-    .single();
-
-  if (profileError) return { data: null, error: profileError };
-
-  return { data: { user: authData.user, profile: profileData }, error: null };
+  return { data: { user: authData.user }, error: null };
 };
 
 /** Sign in with email + password */

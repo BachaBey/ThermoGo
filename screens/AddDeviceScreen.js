@@ -50,7 +50,7 @@ const fetchWithTimeout = (url, options = {}, ms = FETCH_TIMEOUT_MS) => {
 
 const openWifiSettings = () => {
   if (Platform.OS === 'ios') {
-    Linking.openURL('App-Prefs:WIFI').catch(() => Linking.openURL('app-settings:'));
+    Linking.openSettings();
   } else {
     Linking.sendIntent('android.settings.WIFI_SETTINGS').catch(() =>
       Linking.openURL('android.settings.WIFI_SETTINGS')

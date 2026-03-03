@@ -234,3 +234,72 @@ export const markAllNotificationsRead = async (userId) => {
     .eq('is_read', false);
   return { error };
 };
+
+// ═════════════════════════════════════════════════════════════════════════════
+// DEVICE WIFI NETWORKS
+// Table: device_wifi_networks (id, device_id, ssid, password, created_at)
+// The ESP pulls these credentials from Supabase on its own — the app only
+// reads/writes to Supabase, never communicates with the device directly here.
+// ═════════════════════════════════════════════════════════════════════════════
+
+/** Fetch all saved WiFi networks for a device, newest first. */
+export const getDeviceWifiNetworks = async (deviceId) => {
+  const { data, error } = await supabase
+    .from('device_wifi_networks')
+    .select('id, ssid, created_at')   // never select password on reads
+    .eq('device_id', deviceId)
+    .order('created_at', { ascending: false });
+  return { data, error };
+};
+
+/**
+ * Add a WiFi network for a device.
+ * Enforces: max 5 networks, no duplicate SSID for same device.
+ * Passwords are stored as plain text — note to user to use HTTPS/RLS.
+ */
+export const addDeviceWifiNetwork = async (deviceId, ssid, password) => {
+  // 1. Fetch existing networks to enforce limits
+  const { data: existing, error: fetchError } = await supabase
+    .from('device_wifi_networks')
+    .select('id, ssid')
+    .eq('device_id', deviceId);
+
+  if (fetchError) return { data: null, error: fetchError };
+
+  // 2. Enforce max 5 limit
+  if (existing && existing.length >= 5) {
+    return {
+      data: null,
+      error: new Error('Maximum of 5 WiFi networks per device. Delete one before adding another.'),
+    };
+  }
+
+  // 3. Enforce no duplicate SSID for same device
+  const duplicate = existing?.find(
+    (n) => n.ssid.trim().toLowerCase() === ssid.trim().toLowerCase()
+  );
+  if (duplicate) {
+    return {
+      data: null,
+      error: new Error(`A network named "${ssid}" is already saved for this device.`),
+    };
+  }
+
+  // 4. Insert
+  const { data, error } = await supabase
+    .from('device_wifi_networks')
+    .insert([{ device_id: deviceId, ssid: ssid.trim(), password }])
+    .select('id, ssid, created_at')
+    .single();
+
+  return { data, error };
+};
+
+/** Delete a saved WiFi network by its id. */
+export const deleteDeviceWifiNetwork = async (networkId) => {
+  const { error } = await supabase
+    .from('device_wifi_networks')
+    .delete()
+    .eq('id', networkId);
+  return { error };
+};

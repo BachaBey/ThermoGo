@@ -26,6 +26,9 @@ export const AuthProvider = ({ children }) => {
       setUser(u);
       if (u) fetchProfile(u.id).finally(() => setLoading(false));
       else   setLoading(false);
+    }).catch(() => {
+      // If getSession fails, set loading to false
+      setLoading(false);
     });
 
     // 2. Listen for sign-in / sign-out events

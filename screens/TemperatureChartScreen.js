@@ -892,14 +892,18 @@ const TemperatureChartScreen = ({ navigation }) => {
                       strokeWidth: '2',
                       stroke: theme.primary,
                     },
+                    // Grid configuration
+                    gridColor: theme.border,
+                    gridStrokeWidth: 1,
+                    showGridLines: true,
                   }}
                   style={{
                     marginVertical: 8,
                     borderRadius: RADIUS.md,
                   }}
                   withDots={true}
-                  withInnerLines={false}
-                  withOuterLines={false}
+                  withInnerLines={true}
+                  withOuterLines={true}
                   withVerticalLabels={true}
                   withHorizontalLabels={true}
                   yAxisSuffix={unitLabel}

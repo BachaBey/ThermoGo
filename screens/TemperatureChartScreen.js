@@ -935,6 +935,7 @@ const TemperatureChartScreen = ({ navigation }) => {
                 </View>
               </ScrollView>
             </View>
+          ) : (
             <View style={styles.placeholderWrap}>
               <Ionicons name="bar-chart-outline" size={32} color={theme.textMuted} />
               <Text style={[styles.placeholder, { color: theme.textMuted }]}>

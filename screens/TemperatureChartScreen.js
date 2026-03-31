@@ -854,29 +854,45 @@ const TemperatureChartScreen = ({ navigation }) => {
               <Text style={[styles.placeholder, { color: theme.textMuted }]}>Loading...</Text>
             </View>
           ) : chartData ? (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              <LineChart
-                data={chartData}
-                width={Math.max(CHART_WIDTH, chartData.labels.length * 44)}
-                height={220}
-                yAxisSuffix={unitLabel}
-                chartConfig={{
-                  backgroundColor:         '#ffffff',
-                  backgroundGradientFrom:  '#ffffff',
-                  backgroundGradientTo:    '#ffffff',
-                  decimalPlaces:           1,
-                  color:  (opacity = 1) => `rgba(0, 108, 149, ${opacity})`,
-                  labelColor:              () => '#000000',
-                  strokeWidth:             2.5,
-                  propsForDots:            { r: '4', strokeWidth: '2', stroke: '#006C95' },
-                  propsForBackgroundLines: { stroke: '#E5E5E5', strokeWidth: 1 },
-                  propsForLabels:          { fontSize: 9 },
-                }}
-                bezier
-                style={{ borderRadius: RADIUS.md }}
-                fromZero={false}
-              />
-            </ScrollView>
+            <>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                <LineChart
+                  data={chartData}
+                  width={Math.max(CHART_WIDTH, chartData.labels.length * 44)}
+                  height={220}
+                  yAxisSuffix={unitLabel}
+                  chartConfig={{
+                    backgroundColor:         '#ffffff',
+                    backgroundGradientFrom:  '#ffffff',
+                    backgroundGradientTo:    '#ffffff',
+                    decimalPlaces:           1,
+                    color:  (opacity = 1) => `rgba(0, 108, 149, ${opacity})`,
+                    labelColor:              () => '#000000',
+                    strokeWidth:             2.5,
+                    propsForDots:            { r: '4', strokeWidth: '2', stroke: '#006C95' },
+                    propsForBackgroundLines: { stroke: '#E5E5E5', strokeWidth: 1 },
+                    propsForLabels:          { fontSize: 9 },
+                  }}
+                  bezier
+                  style={{ borderRadius: RADIUS.md }}
+                  fromZero={false}
+                />
+              </ScrollView>
+              {/* Chart details */}
+              <View style={styles.chartDetails}>
+                <Text style={[styles.chartDetailText, { color: theme.textMuted }]}>
+                  Time Range: {formatDisplay(startDate)} {formatTimeDisplay(startHour, startMin)} → {formatDisplay(endDate)} {formatTimeDisplay(endHour, endMin)}
+                </Text>
+                <Text style={[styles.chartDetailText, { color: theme.textMuted }]}>
+                  Duration: {(() => {
+                    const diffMs = buildEnd() - buildStart();
+                    const hours = Math.floor(diffMs / 3600000);
+                    const minutes = Math.floor((diffMs % 3600000) / 60000);
+                    return `${hours}h ${minutes}m`;
+                  })()}
+                </Text>
+              </View>
+            </>
           ) : (
             <View style={styles.placeholderWrap}>
               <Ionicons name="bar-chart-outline" size={32} color={theme.textMuted} />
@@ -976,6 +992,8 @@ const styles = StyleSheet.create({
   chartHeader:     { flexDirection: 'row', alignItems: 'center', gap: SPACING.xs, marginBottom: SPACING.xs },
   chartTitle:      { fontSize: FONT_SIZES.base, fontWeight: '700' },
   chartSubtitle:   { fontSize: FONT_SIZES.xs, marginBottom: SPACING.md },
+  chartDetails:    { marginTop: SPACING.sm, gap: SPACING.xs },
+  chartDetailText: { fontSize: FONT_SIZES.xs },
   placeholderWrap: { alignItems: 'center', paddingVertical: SPACING.xl, gap: SPACING.sm },
   placeholder:     { fontSize: FONT_SIZES.sm },
   footer:          { fontSize: FONT_SIZES.xs, textAlign: 'center', marginTop: SPACING.md },

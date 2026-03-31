@@ -88,12 +88,14 @@ const InstallPrompt = ({ appName = 'ThermoGo', appIcon, theme }) => {
 
     setPlatform(p);
 
-    // Android: intercept the native browser install prompt
-    const handleBeforeInstall = (e) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-    };
-    window.addEventListener('beforeinstallprompt', handleBeforeInstall);
+    // Only intercept on iOS (for custom instructions); let Android show native banner
+    if (p === 'ios') {
+      const handleBeforeInstall = (e) => {
+        e.preventDefault();
+        setDeferredPrompt(e);
+      };
+      window.addEventListener('beforeinstallprompt', handleBeforeInstall);
+    }
 
     // Show prompt after a short delay so the app loads first
     const timer = setTimeout(() => {
@@ -114,7 +116,9 @@ const InstallPrompt = ({ appName = 'ThermoGo', appIcon, theme }) => {
 
     return () => {
       clearTimeout(timer);
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
+      if (p === 'ios') {
+        window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
+      }
     };
   }, []);
 

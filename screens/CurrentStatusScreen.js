@@ -44,22 +44,38 @@ const MetricCard = ({ label, value, unit, ionicon, status, statusLabel }) => {
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-const getTempStatus = (t) => {
-  if (t == null) return 'neutral';
-  if (t < -25 || t > -10) return 'danger';
-  if (t < -22 || t > -15) return 'warning';
+// Use device's target and threshold for status
+const getTempStatus = (t, device) => {
+  if (t == null || !device) return 'neutral';
+  const target = Number(device.target_temp);
+  const tol = Number(device.threshold_temp);
+  if (isNaN(target) || isNaN(tol)) return 'neutral';
+  if (t < target - Math.abs(tol) || t > target + Math.abs(tol)) return 'danger';
   return 'good';
 };
-const getTempLabel = (t) => {
-  if (t < -25 || t > -10) return 'Critical';
-  if (t < -22 || t > -15) return 'Warning';
+const getTempLabel = (t, device) => {
+  if (t == null || !device) return '';
+  const target = Number(device.target_temp);
+  const tol = Number(device.threshold_temp);
+  if (isNaN(target) || isNaN(tol)) return '';
+  if (t < target - Math.abs(tol) || t > target + Math.abs(tol)) return 'Critical';
   return 'Normal';
 };
-const getHumidityStatus = (h) => {
-  if (h == null) return 'neutral';
-  if (h < 30 || h > 90) return 'danger';
-  if (h < 40 || h > 80) return 'warning';
+const getHumidityStatus = (h, device) => {
+  if (h == null || !device) return 'neutral';
+  const target = Number(device.target_humidity);
+  const tol = Number(device.threshold_humidity);
+  if (isNaN(target) || isNaN(tol)) return 'neutral';
+  if (h < target - Math.abs(tol) || h > target + Math.abs(tol)) return 'danger';
   return 'good';
+};
+const getHumidityLabel = (h, device) => {
+  if (h == null || !device) return '';
+  const target = Number(device.target_humidity);
+  const tol = Number(device.threshold_humidity);
+  if (isNaN(target) || isNaN(tol)) return '';
+  if (h < target - Math.abs(tol) || h > target + Math.abs(tol)) return 'Critical';
+  return 'Normal';
 };
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
@@ -219,8 +235,8 @@ const CurrentStatusScreen = ({ navigation }) => {
                   value={Number(reading.temperature).toFixed(1)}
                   unit="°C"
                   ionicon="thermometer"
-                  status={getTempStatus(reading.temperature)}
-                  statusLabel={getTempLabel(reading.temperature)}
+                  status={getTempStatus(reading.temperature, selectedDevice)}
+                  statusLabel={getTempLabel(reading.temperature, selectedDevice)}
                 />
 
                 {/* Humidity */}
@@ -229,11 +245,8 @@ const CurrentStatusScreen = ({ navigation }) => {
                   value={Number(reading.humidity).toFixed(1)}
                   unit="%"
                   ionicon="water"
-                  status={getHumidityStatus(reading.humidity)}
-                  statusLabel={
-                    getHumidityStatus(reading.humidity) === 'good' ? 'Normal'
-                    : getHumidityStatus(reading.humidity) === 'warning' ? 'Warning' : 'Critical'
-                  }
+                  status={getHumidityStatus(reading.humidity, selectedDevice)}
+                  statusLabel={getHumidityLabel(reading.humidity, selectedDevice)}
                 />
 
                 {/* Device info */}

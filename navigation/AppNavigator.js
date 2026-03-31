@@ -160,13 +160,13 @@ const MainTabs = () => {
 
 // ─── Root navigator ───────────────────────────────────────────────────────────
 const AppNavigator = () => {
-  const { user, loading } = useAuth();
+  const { user, error } = useAuth();
   const { theme }         = useTheme();
-
-  if (loading) {
     return (
-      <View style={[styles.loader, { backgroundColor: theme.background }]}>
-        <ActivityIndicator size="large" color={theme.primary} />
+      <View style={[styles.loader, { backgroundColor: theme.background, padding: 32 }]}> 
+        <Ionicons name="alert-circle-outline" size={48} color={theme.danger || 'red'} style={{ marginBottom: 16 }} />
+        <Text style={{ color: theme.danger || 'red', fontSize: 18, fontWeight: '700', marginBottom: 8, textAlign: 'center' }}>Error</Text>
+        <Text style={{ color: theme.text || '#333', fontSize: 16, textAlign: 'center' }}>{error}</Text>
       </View>
     );
   }

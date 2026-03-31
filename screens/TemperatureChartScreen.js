@@ -855,63 +855,83 @@ const TemperatureChartScreen = ({ navigation }) => {
             </View>
           ) : chartData ? (
             <>
-              <ScrollView horizontal showsHorizontalScrollIndicator={true} style={{ marginHorizontal: -SPACING.base }}>
-                <LineChart
-                  data={{
-                    labels: chartData.data.map((point, index) => {
-                      // Show time label every few points to avoid overcrowding
-                      if (index % Math.max(1, Math.floor(chartData.data.length / 6)) === 0) {
-                        const d = new Date(point.x);
-                        return `${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
-                      }
-                      return '';
-                    }),
-                    datasets: [{
-                      data: chartData.data.map(point => point.y),
+              {/* Fixed Y-axis labels */}
+              <View style={styles.yAxisContainer}>
+                {Array.from({ length: 6 }, (_, i) => {
+                  const value = chartData.minY + (chartData.maxY - chartData.minY) * (5 - i) / 5;
+                  return (
+                    <Text key={i} style={[styles.yAxisLabel, { color: theme.text }]}>
+                      {value.toFixed(1)}{unitLabel}
+                    </Text>
+                  );
+                })}
+              </View>
+              
+              {/* Scrollable chart area */}
+              <ScrollView 
+                horizontal 
+                showsHorizontalScrollIndicator={true} 
+                style={styles.chartScrollContainer}
+                contentContainerStyle={{ paddingLeft: 0 }}
+              >
+                <View style={styles.chartWrapper}>
+                  <LineChart
+                    data={{
+                      labels: chartData.data.map((point, index) => {
+                        // Show time label every few points to avoid overcrowding
+                        if (index % Math.max(1, Math.floor(chartData.data.length / 6)) === 0) {
+                          const d = new Date(point.x);
+                          return `${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
+                        }
+                        return '';
+                      }),
+                      datasets: [{
+                        data: chartData.data.map(point => point.y),
+                        color: () => theme.primary,
+                        strokeWidth: 2,
+                      }],
+                    }}
+                    width={Math.max(CHART_WIDTH, chartData.data.length * 60)} // Ensure minimum width for scrolling
+                    height={220}
+                    chartConfig={{
+                      backgroundColor: 'transparent',
+                      backgroundGradientFrom: 'transparent',
+                      backgroundGradientTo: 'transparent',
+                      decimalPlaces: 1,
                       color: () => theme.primary,
-                      strokeWidth: 2,
-                    }],
-                  }}
-                  width={Math.max(CHART_WIDTH, chartData.data.length * 60)} // Ensure minimum width for scrolling
-                  height={220}
-                  chartConfig={{
-                    backgroundColor: theme.surfaceAlt,
-                    backgroundGradientFrom: theme.surfaceAlt,
-                    backgroundGradientTo: theme.surfaceAlt,
-                    decimalPlaces: 1,
-                    color: () => theme.primary,
-                    labelColor: () => theme.text,
-                    style: {
+                      labelColor: () => theme.text,
+                      style: {
+                        borderRadius: RADIUS.md,
+                      },
+                      propsForLabels: {
+                        fontSize: 10,
+                      },
+                      propsForDots: {
+                        r: '3',
+                        strokeWidth: '2',
+                        stroke: theme.primary,
+                      },
+                      // Grid configuration
+                      gridColor: theme.border,
+                      gridStrokeWidth: 1,
+                      showGridLines: true,
+                    }}
+                    style={{
+                      marginVertical: 8,
                       borderRadius: RADIUS.md,
-                    },
-                    propsForLabels: {
-                      fontSize: 10,
-                    },
-                    propsForDots: {
-                      r: '3',
-                      strokeWidth: '2',
-                      stroke: theme.primary,
-                    },
-                    // Grid configuration
-                    gridColor: theme.border,
-                    gridStrokeWidth: 1,
-                    showGridLines: true,
-                  }}
-                  style={{
-                    marginVertical: 8,
-                    borderRadius: RADIUS.md,
-                  }}
-                  withDots={true}
-                  withInnerLines={true}
-                  withOuterLines={true}
-                  withVerticalLabels={true}
-                  withHorizontalLabels={true}
-                  yAxisSuffix={unitLabel}
-                  yAxisInterval={1}
-                  formatYLabel={(y) => `${parseFloat(y).toFixed(1)}${unitLabel}`}
-                  fromZero={false}
-                  segments={5}
-                />
+                    }}
+                    withDots={true}
+                    withInnerLines={true}
+                    withOuterLines={true}
+                    withVerticalLabels={true}
+                    withHorizontalLabels={false} // Disable built-in horizontal labels
+                    yAxisSuffix="" // Remove duplicate suffix
+                    yAxisInterval={1}
+                    formatYLabel={(y) => parseFloat(y).toFixed(1)} // Remove unit from here
+                    fromZero={false}
+                    segments={5}
+                  />
+                </View>
               </ScrollView>
               {/* Chart details */}
               <View style={styles.chartDetails}>
@@ -1032,6 +1052,30 @@ const styles = StyleSheet.create({
   placeholderWrap: { alignItems: 'center', paddingVertical: SPACING.xl, gap: SPACING.sm },
   placeholder:     { fontSize: FONT_SIZES.sm },
   footer:          { fontSize: FONT_SIZES.xs, textAlign: 'center', marginTop: SPACING.md },
-});
+
+  // New styles for fixed y-axis
+  yAxisContainer: {
+    position: 'absolute',
+    left: SPACING.base,
+    top: 40,
+    bottom: 40,
+    width: 50,
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    zIndex: 1,
+  },
+  yAxisLabel: {
+    fontSize: FONT_SIZES.xs,
+    fontWeight: '600',
+    textAlign: 'right',
+    width: 40,
+  },
+  chartScrollContainer: {
+    marginLeft: 60, // Make room for y-axis labels
+    marginRight: -SPACING.base,
+  },
+  chartWrapper: {
+    backgroundColor: 'transparent',
+  },
 
 export default TemperatureChartScreen;

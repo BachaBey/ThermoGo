@@ -127,6 +127,10 @@ const WifiProvisionModal = ({ visible, onClose, onProvisioned, theme }) => {
   const [ssid,       setSsid]      = useState('');
   const [password,   setPassword]  = useState('');
   const [showPass,   setShowPass]  = useState(false);
+  const [targetTemp,     setTargetTemp]     = useState('');
+  const [targetHumidity, setTargetHumidity] = useState('');
+  const [thresholdTemp,  setThresholdTemp]  = useState('');
+  const [thresholdHumidity, setThresholdHumidity] = useState('');
   const [sending,    setSending]   = useState(false);
   const [resultOk,   setResultOk]  = useState(false);
   const [resultMsg,  setResultMsg] = useState('');
@@ -138,6 +142,7 @@ const WifiProvisionModal = ({ visible, onClose, onProvisioned, theme }) => {
     if (visible) {
       setStep(1); setDeviceId(''); setFetching(false); setFetchError('');
       setSsid(''); setPassword(''); setShowPass(false);
+      setTargetTemp(''); setTargetHumidity(''); setThresholdTemp(''); setThresholdHumidity('');
       setSending(false); setResultOk(false); setResultMsg('');
     }
   }, [visible]);
@@ -200,6 +205,7 @@ const WifiProvisionModal = ({ visible, onClose, onProvisioned, theme }) => {
       setResultMsg('Please enter your WiFi network name.');
       return;
     }
+
     setSending(true);
     setResultMsg('');
 
@@ -247,7 +253,15 @@ const WifiProvisionModal = ({ visible, onClose, onProvisioned, theme }) => {
   };
 
   const handleDone = () => {
-    if (resultOk) onProvisioned(deviceId);
+    if (resultOk) {
+      const fields = {
+        target_temp: numericField(targetTemp),
+        target_humidity: numericField(targetHumidity),
+        threshold_temp: numericField(thresholdTemp),
+        threshold_humidity: numericField(thresholdHumidity),
+      };
+      onProvisioned(deviceId, fields); // Pass deviceId and target fields
+    }
     onClose();
   };
 
@@ -255,8 +269,8 @@ const WifiProvisionModal = ({ visible, onClose, onProvisioned, theme }) => {
   const stepTitles = [
     'Connect to Device',
     'Reading Device ID…',
-    'Enter WiFi Credentials',
-    resultOk ? 'Device Provisioned!' : 'Something Went Wrong',
+    'Configure Device',
+    resultOk ? 'Device Configured!' : 'Something Went Wrong',
   ];
 
   return (
@@ -452,7 +466,7 @@ const WifiProvisionModal = ({ visible, onClose, onProvisioned, theme }) => {
                 <View style={[wm.infoBox, { backgroundColor: theme.primaryLight, borderColor: primary + '30' }]}>
                   <Ionicons name="information-circle-outline" size={16} color={primary} />
                   <Text style={[wm.infoText, { color: primary }]}>
-                    Enter your home or office WiFi credentials. The sensor will connect to this network to send temperature data.
+                    Configure your home WiFi credentials and set target temperature/humidity levels for this device.
                   </Text>
                 </View>
 
@@ -499,6 +513,93 @@ const WifiProvisionModal = ({ visible, onClose, onProvisioned, theme }) => {
                   </TouchableOpacity>
                 </View>
 
+                {/* Target Values Section */}
+                <View style={[wm.sectionDivider, { backgroundColor: theme.divider, marginTop: SPACING.xl, marginBottom: SPACING.lg }]} />
+                <View style={wm.sectionHeader}>
+                  <SectionIcon ionicon="flag-outline" color={primary} bg={theme.primaryLight} />
+                  <Text style={[wm.sectionTitle, { color: theme.text }]}>Target Values</Text>
+                </View>
+                <Text style={[wm.sectionDesc, { color: theme.textSecondary }]}>
+                  Set the desired temperature and humidity levels for this device.
+                </Text>
+
+                {/* Target Temp and Humidity */}
+                <View style={wm.twoCol}>
+                  <View style={wm.inputGroup}>
+                    <Text style={[wm.fieldLabel, { color: theme.textMuted }]}>TARGET TEMP</Text>
+                    <View style={[wm.inputRow, { borderColor: theme.border, backgroundColor: theme.surfaceAlt }]}>
+                      <Input
+                        value={targetTemp}
+                        onChangeText={(v) => setTargetTemp(sanitizeNum(v))}
+                        placeholder="-18"
+                        keyboardType="default"
+                        autoCapitalize="none"
+                        noLabel
+                        style={{ flex: 1, borderWidth: 0, backgroundColor: 'transparent' }}
+                      />
+                      <Text style={[wm.suffix, { color: theme.textSecondary }]}>°C</Text>
+                    </View>
+                  </View>
+                  <View style={wm.inputGroup}>
+                    <Text style={[wm.fieldLabel, { color: theme.textMuted }]}>TARGET HUMIDITY</Text>
+                    <View style={[wm.inputRow, { borderColor: theme.border, backgroundColor: theme.surfaceAlt }]}>
+                      <Input
+                        value={targetHumidity}
+                        onChangeText={(v) => setTargetHumidity(sanitizeNum(v))}
+                        placeholder="60"
+                        keyboardType="default"
+                        autoCapitalize="none"
+                        noLabel
+                        style={{ flex: 1, borderWidth: 0, backgroundColor: 'transparent' }}
+                      />
+                      <Text style={[wm.suffix, { color: theme.textSecondary }]}>%</Text>
+                    </View>
+                  </View>
+                </View>
+
+                {/* Tolerance Section */}
+                <View style={wm.sectionHeader}>
+                  <SectionIcon ionicon="alert-circle-outline" color={theme.warning} bg={theme.warningBg} />
+                  <Text style={[wm.sectionTitle, { color: theme.text }]}>Tolerance</Text>
+                </View>
+                <Text style={[wm.sectionDesc, { color: theme.textSecondary }]}>
+                  Alert when readings deviate from targets by this amount.
+                </Text>
+
+                {/* Threshold Temp and Humidity */}
+                <View style={wm.twoCol}>
+                  <View style={wm.inputGroup}>
+                    <Text style={[wm.fieldLabel, { color: theme.textMuted }]}>TEMP ±</Text>
+                    <View style={[wm.inputRow, { borderColor: theme.border, backgroundColor: theme.surfaceAlt }]}>
+                      <Input
+                        value={thresholdTemp}
+                        onChangeText={(v) => setThresholdTemp(sanitizeNum(v))}
+                        placeholder="3"
+                        keyboardType="default"
+                        autoCapitalize="none"
+                        noLabel
+                        style={{ flex: 1, borderWidth: 0, backgroundColor: 'transparent' }}
+                      />
+                      <Text style={[wm.suffix, { color: theme.textSecondary }]}>°C</Text>
+                    </View>
+                  </View>
+                  <View style={wm.inputGroup}>
+                    <Text style={[wm.fieldLabel, { color: theme.textMuted }]}>HUMIDITY ±</Text>
+                    <View style={[wm.inputRow, { borderColor: theme.border, backgroundColor: theme.surfaceAlt }]}>
+                      <Input
+                        value={thresholdHumidity}
+                        onChangeText={(v) => setThresholdHumidity(sanitizeNum(v))}
+                        placeholder="10"
+                        keyboardType="default"
+                        autoCapitalize="none"
+                        noLabel
+                        style={{ flex: 1, borderWidth: 0, backgroundColor: 'transparent' }}
+                      />
+                      <Text style={[wm.suffix, { color: theme.textSecondary }]}>%</Text>
+                    </View>
+                  </View>
+                </View>
+
                 {/* Send button */}
                 <TouchableOpacity
                   style={[wm.primaryBtn, { backgroundColor: primary, opacity: sending ? 0.7 : 1, marginTop: SPACING.xl }]}
@@ -511,7 +612,7 @@ const WifiProvisionModal = ({ visible, onClose, onProvisioned, theme }) => {
                     <Ionicons name="send-outline" size={18} color="#fff" />
                   )}
                   <Text style={wm.primaryBtnText}>
-                    {sending ? 'Sending to device…' : 'Send to Device'}
+                    {sending ? 'Sending to ESP…' : 'Send to ESP'}
                   </Text>
                 </TouchableOpacity>
 
@@ -565,9 +666,9 @@ const WifiProvisionModal = ({ visible, onClose, onProvisioned, theme }) => {
                       <Text style={[wm.nextTitle, { color: theme.text }]}>What happens next:</Text>
                       {[
                         'The sensor restarts and connects to your WiFi.',
-                        'Reconnect your phone to your home WiFi.',
-                        'Fill in the device name and targets below.',
-                        'Tap Register Device to save.',
+                        'Target values are saved to your account.',
+                        'The device will start monitoring and reporting data.',
+                        'You can edit settings anytime from the device list.',
                       ].map((txt, i) => (
                         <View key={i} style={wm.nextRow}>
                           <View style={[wm.nextDot, { backgroundColor: primary }]} />
@@ -588,7 +689,7 @@ const WifiProvisionModal = ({ visible, onClose, onProvisioned, theme }) => {
                     color="#fff"
                   />
                   <Text style={wm.primaryBtnText}>
-                    {resultOk ? 'Done — Fill Device Details' : 'Try Again'}
+                    {resultOk ? 'Device Configured!' : 'Try Again'}
                   </Text>
                 </TouchableOpacity>
 
@@ -666,6 +767,15 @@ const wm = StyleSheet.create({
 
   sendingNote:     { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm, borderWidth: 1, borderRadius: RADIUS.md, padding: SPACING.md, marginTop: SPACING.md },
   sendingNoteText: { flex: 1, fontSize: FONT_SIZES.xs, lineHeight: 18 },
+
+  // New styles for target values section
+  sectionDivider: { height: 1, marginHorizontal: -SPACING.xl },
+  sectionHeader:  { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm, marginBottom: SPACING.xs },
+  sectionTitle:   { fontSize: FONT_SIZES.sm, fontWeight: '700' },
+  sectionDesc:    { fontSize: FONT_SIZES.xs, lineHeight: 18, marginBottom: SPACING.md },
+  twoCol:         { flexDirection: 'row', gap: SPACING.sm },
+  inputGroup:     { flex: 1 },
+  suffix:         { fontSize: FONT_SIZES.sm, fontWeight: '600', marginRight: SPACING.sm },
 
   // Step 4
   resultCircle: { width: 88, height: 88, borderRadius: 44, alignItems: 'center', justifyContent: 'center', borderWidth: 2, alignSelf: 'center', marginBottom: SPACING.lg },
@@ -1159,10 +1269,28 @@ const AddDeviceScreen = () => {
 
   const setField = (key) => (val) => setForm(f => ({ ...f, [key]: val }));
 
-  const handleProvisioned = (deviceId) => {
+  const handleProvisioned = async (deviceId, targetFields) => {
     if (deviceId) {
-      setForm(f => ({ ...f, device_id: deviceId }));
-      setSuccess(`Device "${deviceId}" provisioned! Fill in the name and targets, then tap Register.`);
+      // Save device to Supabase with the target values from provisioning
+      try {
+        const fields = {
+          device_id: deviceId,
+          name: `Device ${deviceId}`, // Default name
+          ...targetFields,
+        };
+
+        if (!USE_MOCK) {
+          await addDevice(user.id, fields);
+          fetchDevices(); // Refresh the device list
+        } else {
+          // For mock mode, add to local state
+          setExistingDevices(prev => [{ id: String(Date.now()), ...fields, user_id: 'mock' }, ...prev]);
+        }
+
+        setSuccess(`Device "${deviceId}" provisioned and registered successfully!`);
+      } catch (error) {
+        setError(`Device provisioned but failed to save to database: ${error.message}`);
+      }
     } else {
       setSuccess('Device provisioned! Enter the Device ID manually and fill in the remaining details.');
     }

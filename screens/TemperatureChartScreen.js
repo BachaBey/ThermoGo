@@ -854,7 +854,7 @@ const TemperatureChartScreen = ({ navigation }) => {
               <Text style={[styles.placeholder, { color: theme.textMuted }]}>Loading...</Text>
             </View>
           ) : chartData ? (
-            <>
+            <View style={styles.chartContainer}>
               {/* Fixed Y-axis labels */}
               <View style={styles.yAxisContainer}>
                 {Array.from({ length: 6 }, (_, i) => {
@@ -891,7 +891,7 @@ const TemperatureChartScreen = ({ navigation }) => {
                         strokeWidth: 2,
                       }],
                     }}
-                    width={Math.max(CHART_WIDTH, chartData.data.length * 60)} // Ensure minimum width for scrolling
+                    width={Math.max(CHART_WIDTH - 60, chartData.data.length * 60)} // Account for y-axis space
                     height={220}
                     chartConfig={{
                       backgroundColor: 'transparent',
@@ -919,6 +919,7 @@ const TemperatureChartScreen = ({ navigation }) => {
                     style={{
                       marginVertical: 8,
                       borderRadius: RADIUS.md,
+                      marginLeft: 0, // Remove left margin since we have custom y-axis
                     }}
                     withDots={true}
                     withInnerLines={true}
@@ -933,22 +934,7 @@ const TemperatureChartScreen = ({ navigation }) => {
                   />
                 </View>
               </ScrollView>
-              {/* Chart details */}
-              <View style={styles.chartDetails}>
-                <Text style={[styles.chartDetailText, { color: theme.textMuted }]}>
-                  Time Range: {formatDisplay(startDate)} {formatTimeDisplay(startHour, startMin)} → {formatDisplay(endDate)} {formatTimeDisplay(endHour, endMin)}
-                </Text>
-                <Text style={[styles.chartDetailText, { color: theme.textMuted }]}>
-                  Duration: {(() => {
-                    const diffMs = buildEnd() - buildStart();
-                    const hours = Math.floor(diffMs / 3600000);
-                    const minutes = Math.floor((diffMs % 3600000) / 60000);
-                    return `${hours}h ${minutes}m`;
-                  })()}
-                </Text>
-              </View>
-            </>
-          ) : (
+            </View>
             <View style={styles.placeholderWrap}>
               <Ionicons name="bar-chart-outline" size={32} color={theme.textMuted} />
               <Text style={[styles.placeholder, { color: theme.textMuted }]}>
@@ -1054,15 +1040,20 @@ const styles = StyleSheet.create({
   footer:          { fontSize: FONT_SIZES.xs, textAlign: 'center', marginTop: SPACING.md },
 
   // New styles for fixed y-axis
+  chartContainer: {
+    position: 'relative',
+    marginTop: SPACING.md,
+  },
   yAxisContainer: {
     position: 'absolute',
-    left: SPACING.base,
-    top: 40,
-    bottom: 40,
+    left: 0,
+    top: 16, // Align with chart top
+    bottom: 48, // Align with chart bottom (accounting for x-axis labels)
     width: 50,
     justifyContent: 'space-between',
     alignItems: 'flex-end',
     zIndex: 1,
+    paddingRight: SPACING.xs,
   },
   yAxisLabel: {
     fontSize: FONT_SIZES.xs,
@@ -1071,8 +1062,7 @@ const styles = StyleSheet.create({
     width: 40,
   },
   chartScrollContainer: {
-    marginLeft: 60, // Make room for y-axis labels
-    marginRight: -SPACING.base,
+    marginLeft: 50, // Make room for y-axis labels
   },
   chartWrapper: {
     backgroundColor: 'transparent',

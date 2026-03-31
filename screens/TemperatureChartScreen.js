@@ -3,7 +3,7 @@ import {
   View, Text, StyleSheet, ScrollView, Dimensions,
   TouchableOpacity, Modal, Pressable, FlatList,
 } from 'react-native';
-import { LineChart }  from 'react-native-chart-kit';
+import { VictoryChart, VictoryLine, VictoryAxis, VictoryZoomContainer } from 'victory-native';
 import { Ionicons }   from '@expo/vector-icons';
 import { useTheme }   from '../styles/ThemeContext';
 import { useAuth }    from '../services/AuthContext';
@@ -680,30 +680,23 @@ const TemperatureChartScreen = ({ navigation }) => {
   // ── Chart data ─────────────────────────────────────────────────────────────
   const chartData = (() => {
     if (!readings.length) return null;
-    const step    = Math.max(1, Math.floor(readings.length / 50)); // More points for better resolution
+    const intervalMinutes = 15;
+    const startTime = new Date(readings[0].created_at);
+    const endTime = new Date(readings[readings.length - 1].created_at);
+    const totalMinutes = (endTime - startTime) / 60000;
+    const numPoints = Math.floor(totalMinutes / intervalMinutes) + 1;
+    const step = Math.max(1, Math.floor(readings.length / numPoints));
     const sampled = readings.filter((_, i) => i % step === 0);
     
-    const startTime = new Date(sampled[0].created_at);
-    const totalMinutes = (new Date(sampled[sampled.length - 1].created_at) - startTime) / 60000;
+    const data = sampled.map(r => ({
+      x: new Date(r.created_at),
+      y: Number(r[activeMetric])
+    }));
     
-    // Show time labels at regular intervals (every 2 hours or so)
-    const labelInterval = Math.max(1, Math.floor(totalMinutes / 6)); // Aim for about 6 labels
+    const minY = Math.min(...data.map(d => d.y));
+    const maxY = Math.max(...data.map(d => d.y));
     
-    const labels = sampled.map((r, index) => {
-      const d = new Date(r.created_at);
-      const minutes = Math.round((d - startTime) / 60000);
-      
-      // Show label at start, end, and regular intervals
-      if (index === 0 || index === sampled.length - 1 || minutes % labelInterval === 0) {
-        return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
-      }
-      return '';
-    });
-
-    return {
-      labels: labels,
-      datasets: [{ data: sampled.map(r => Number(r[activeMetric])) }],
-    };
+    return { data, minY, maxY };
   })();
 
   // ── Stats ──────────────────────────────────────────────────────────────────
@@ -862,27 +855,30 @@ const TemperatureChartScreen = ({ navigation }) => {
             </View>
           ) : chartData ? (
             <>
-              <LineChart
-                data={chartData}
+              <VictoryChart
                 width={CHART_WIDTH}
                 height={220}
-                yAxisSuffix={unitLabel}
-                chartConfig={{
-                  backgroundColor:         '#ffffff',
-                  backgroundGradientFrom:  '#ffffff',
-                  backgroundGradientTo:    '#ffffff',
-                  decimalPlaces:           1,
-                  color:  (opacity = 1) => `rgba(0, 108, 149, ${opacity})`,
-                  labelColor:              () => '#000000',
-                  strokeWidth:             2.5,
-                  propsForDots:            { r: '3', strokeWidth: '1', stroke: '#006C95' },
-                  propsForBackgroundLines: { stroke: '#E5E5E5', strokeWidth: 1 },
-                  propsForLabels:          { fontSize: 8 },
-                }}
-                bezier
-                style={{ borderRadius: RADIUS.md }}
-                fromZero={false}
-              />
+                scale={{ x: "time" }}
+                domain={{ y: [chartData.minY - 1, chartData.maxY + 1] }}
+                containerComponent={<VictoryZoomContainer zoomDimension="x" />}
+              >
+                <VictoryLine
+                  data={chartData.data}
+                  style={{ data: { stroke: theme.primary } }}
+                />
+                <VictoryAxis
+                  tickCount={6}
+                  tickFormat={(x) => {
+                    const d = new Date(x);
+                    return `${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
+                  }}
+                  style={{ tickLabels: { fontSize: 8 } }}
+                />
+                <VictoryAxis
+                  dependentAxis
+                  tickFormat={(y) => `${y}${unitLabel}`}
+                />
+              </VictoryChart>
               {/* Chart details */}
               <View style={styles.chartDetails}>
                 <Text style={[styles.chartDetailText, { color: theme.textMuted }]}>

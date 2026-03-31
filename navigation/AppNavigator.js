@@ -161,9 +161,11 @@ const MainTabs = () => {
 // ─── Root navigator ───────────────────────────────────────────────────────────
 const AppNavigator = () => {
   const { user, error } = useAuth();
-  const { theme }         = useTheme();
+  const { theme } = useTheme();
+
+  if (error) {
     return (
-      <View style={[styles.loader, { backgroundColor: theme.background, padding: 32 }]}> 
+      <View style={[styles.loader, { backgroundColor: theme.background, padding: 32 }]}>
         <Ionicons name="alert-circle-outline" size={48} color={theme.danger || 'red'} style={{ marginBottom: 16 }} />
         <Text style={{ color: theme.danger || 'red', fontSize: 18, fontWeight: '700', marginBottom: 8, textAlign: 'center' }}>Error</Text>
         <Text style={{ color: theme.text || '#333', fontSize: 16, textAlign: 'center' }}>{error}</Text>

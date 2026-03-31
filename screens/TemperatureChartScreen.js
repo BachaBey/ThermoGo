@@ -685,11 +685,11 @@ const TemperatureChartScreen = ({ navigation }) => {
     const diffMs  = buildEnd() - buildStart();
     const diffDays = diffMs / 86400000;
 
+    const startTime = new Date(sampled[0].created_at);
     const labels = sampled.map((r) => {
       const d = new Date(r.created_at);
-      if (diffDays <= 1)  return `${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
-      if (diffDays <= 7)  return `${d.getMonth()+1}/${d.getDate()} ${d.getHours()}h`;
-      return `${d.getMonth()+1}/${d.getDate()}`;
+      const minutes = Math.round((d - startTime) / 60000);
+      return minutes.toString();
     });
     const deduped = labels.map((l,i) => (i > 0 && labels[i-1] === l ? '' : l));
 
@@ -855,29 +855,27 @@ const TemperatureChartScreen = ({ navigation }) => {
             </View>
           ) : chartData ? (
             <>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                <LineChart
-                  data={chartData}
-                  width={Math.max(CHART_WIDTH, chartData.labels.length * 44)}
-                  height={220}
-                  yAxisSuffix={unitLabel}
-                  chartConfig={{
-                    backgroundColor:         '#ffffff',
-                    backgroundGradientFrom:  '#ffffff',
-                    backgroundGradientTo:    '#ffffff',
-                    decimalPlaces:           1,
-                    color:  (opacity = 1) => `rgba(0, 108, 149, ${opacity})`,
-                    labelColor:              () => '#000000',
-                    strokeWidth:             2.5,
-                    propsForDots:            { r: '4', strokeWidth: '2', stroke: '#006C95' },
-                    propsForBackgroundLines: { stroke: '#E5E5E5', strokeWidth: 1 },
-                    propsForLabels:          { fontSize: 9 },
-                  }}
-                  bezier
-                  style={{ borderRadius: RADIUS.md }}
-                  fromZero={false}
-                />
-              </ScrollView>
+              <LineChart
+                data={chartData}
+                width={CHART_WIDTH}
+                height={220}
+                yAxisSuffix={unitLabel}
+                chartConfig={{
+                  backgroundColor:         '#ffffff',
+                  backgroundGradientFrom:  '#ffffff',
+                  backgroundGradientTo:    '#ffffff',
+                  decimalPlaces:           1,
+                  color:  (opacity = 1) => `rgba(0, 108, 149, ${opacity})`,
+                  labelColor:              () => '#000000',
+                  strokeWidth:             2.5,
+                  propsForDots:            { r: '4', strokeWidth: '2', stroke: '#006C95' },
+                  propsForBackgroundLines: { stroke: '#E5E5E5', strokeWidth: 1 },
+                  propsForLabels:          { fontSize: 9 },
+                }}
+                bezier
+                style={{ borderRadius: RADIUS.md }}
+                fromZero={false}
+              />
               {/* Chart details */}
               <View style={styles.chartDetails}>
                 <Text style={[styles.chartDetailText, { color: theme.textMuted }]}>

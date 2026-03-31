@@ -680,21 +680,28 @@ const TemperatureChartScreen = ({ navigation }) => {
   // ── Chart data ─────────────────────────────────────────────────────────────
   const chartData = (() => {
     if (!readings.length) return null;
-    const step    = Math.max(1, Math.floor(readings.length / 24));
-    const sampled = readings.filter((_, i) => i % step === 0).slice(-24);
-    const diffMs  = buildEnd() - buildStart();
-    const diffDays = diffMs / 86400000;
-
+    const step    = Math.max(1, Math.floor(readings.length / 50)); // More points for better resolution
+    const sampled = readings.filter((_, i) => i % step === 0);
+    
     const startTime = new Date(sampled[0].created_at);
-    const labels = sampled.map((r) => {
+    const totalMinutes = (new Date(sampled[sampled.length - 1].created_at) - startTime) / 60000;
+    
+    // Show time labels at regular intervals (every 2 hours or so)
+    const labelInterval = Math.max(1, Math.floor(totalMinutes / 6)); // Aim for about 6 labels
+    
+    const labels = sampled.map((r, index) => {
       const d = new Date(r.created_at);
       const minutes = Math.round((d - startTime) / 60000);
-      return minutes.toString();
+      
+      // Show label at start, end, and regular intervals
+      if (index === 0 || index === sampled.length - 1 || minutes % labelInterval === 0) {
+        return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+      }
+      return '';
     });
-    const deduped = labels.map((l,i) => (i > 0 && labels[i-1] === l ? '' : l));
 
     return {
-      labels: deduped,
+      labels: labels,
       datasets: [{ data: sampled.map(r => Number(r[activeMetric])) }],
     };
   })();
@@ -868,9 +875,9 @@ const TemperatureChartScreen = ({ navigation }) => {
                   color:  (opacity = 1) => `rgba(0, 108, 149, ${opacity})`,
                   labelColor:              () => '#000000',
                   strokeWidth:             2.5,
-                  propsForDots:            { r: '4', strokeWidth: '2', stroke: '#006C95' },
+                  propsForDots:            { r: '3', strokeWidth: '1', stroke: '#006C95' },
                   propsForBackgroundLines: { stroke: '#E5E5E5', strokeWidth: 1 },
-                  propsForLabels:          { fontSize: 9 },
+                  propsForLabels:          { fontSize: 8 },
                 }}
                 bezier
                 style={{ borderRadius: RADIUS.md }}

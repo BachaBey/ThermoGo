@@ -1077,5 +1077,6 @@ const styles = StyleSheet.create({
   chartWrapper: {
     backgroundColor: 'transparent',
   },
+});
 
 export default TemperatureChartScreen;

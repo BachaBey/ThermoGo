@@ -22,7 +22,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const profilePromise = getProfile(userId);
       const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Profile fetch timeout')), 10000)
+        setTimeout(() => reject(new Error('Profile fetch timeout')), 30000)
       );
       const { data, error } = await Promise.race([profilePromise, timeoutPromise]);
       if (error) throw error;
@@ -40,7 +40,7 @@ export const AuthProvider = ({ children }) => {
     // 1. Restore existing session on app load with timeout
     const sessionPromise = supabase.auth.getSession();
     const sessionTimeout = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('Session fetch timeout')), 10000)
+      setTimeout(() => reject(new Error('Session fetch timeout')), 30000)
     );
 
     Promise.race([sessionPromise, sessionTimeout])

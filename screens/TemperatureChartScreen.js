@@ -3,7 +3,7 @@ import {
   View, Text, StyleSheet, ScrollView, Dimensions,
   TouchableOpacity, Modal, Pressable, FlatList,
 } from 'react-native';
-import { VictoryChart, VictoryLine, VictoryAxis, VictoryZoomContainer } from 'victory-native';
+import { LineChart } from 'react-native-chart-kit';
 import { Ionicons }   from '@expo/vector-icons';
 import { useTheme }   from '../styles/ThemeContext';
 import { useAuth }    from '../services/AuthContext';
@@ -855,30 +855,60 @@ const TemperatureChartScreen = ({ navigation }) => {
             </View>
           ) : chartData ? (
             <>
-              <VictoryChart
-                width={CHART_WIDTH}
-                height={220}
-                scale={{ x: "time" }}
-                domain={{ y: [chartData.minY - 1, chartData.maxY + 1] }}
-                containerComponent={<VictoryZoomContainer zoomDimension="x" />}
-              >
-                <VictoryLine
-                  data={chartData.data}
-                  style={{ data: { stroke: theme.primary } }}
-                />
-                <VictoryAxis
-                  tickCount={6}
-                  tickFormat={(x) => {
-                    const d = new Date(x);
-                    return `${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
+              <ScrollView horizontal showsHorizontalScrollIndicator={true} style={{ marginHorizontal: -SPACING.base }}>
+                <LineChart
+                  data={{
+                    labels: chartData.data.map((point, index) => {
+                      // Show time label every few points to avoid overcrowding
+                      if (index % Math.max(1, Math.floor(chartData.data.length / 6)) === 0) {
+                        const d = new Date(point.x);
+                        return `${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
+                      }
+                      return '';
+                    }),
+                    datasets: [{
+                      data: chartData.data.map(point => point.y),
+                      color: () => theme.primary,
+                      strokeWidth: 2,
+                    }],
                   }}
-                  style={{ tickLabels: { fontSize: 8 } }}
+                  width={Math.max(CHART_WIDTH, chartData.data.length * 60)} // Ensure minimum width for scrolling
+                  height={220}
+                  chartConfig={{
+                    backgroundColor: theme.surfaceAlt,
+                    backgroundGradientFrom: theme.surfaceAlt,
+                    backgroundGradientTo: theme.surfaceAlt,
+                    decimalPlaces: 1,
+                    color: () => theme.primary,
+                    labelColor: () => theme.text,
+                    style: {
+                      borderRadius: RADIUS.md,
+                    },
+                    propsForLabels: {
+                      fontSize: 10,
+                    },
+                    propsForDots: {
+                      r: '3',
+                      strokeWidth: '2',
+                      stroke: theme.primary,
+                    },
+                  }}
+                  style={{
+                    marginVertical: 8,
+                    borderRadius: RADIUS.md,
+                  }}
+                  withDots={true}
+                  withInnerLines={false}
+                  withOuterLines={false}
+                  withVerticalLabels={true}
+                  withHorizontalLabels={true}
+                  yAxisSuffix={unitLabel}
+                  yAxisInterval={1}
+                  formatYLabel={(y) => `${parseFloat(y).toFixed(1)}${unitLabel}`}
+                  fromZero={false}
+                  segments={5}
                 />
-                <VictoryAxis
-                  dependentAxis
-                  tickFormat={(y) => `${y}${unitLabel}`}
-                />
-              </VictoryChart>
+              </ScrollView>
               {/* Chart details */}
               <View style={styles.chartDetails}>
                 <Text style={[styles.chartDetailText, { color: theme.textMuted }]}>

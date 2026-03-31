@@ -199,7 +199,7 @@ const WifiProvisionModal = ({ visible, onClose, onProvisioned, theme }) => {
     }
   };
 
-  // ── Step 3 → 4: send WiFi credentials to ESP ──────────────────────────────
+  // ── Step 3 → 4: send WiFi credentials and target values to ESP ──────────────────────────────
   const handleSendCredentials = async () => {
     if (!ssid.trim()) {
       setResultMsg('Please enter your WiFi network name.');
@@ -213,18 +213,27 @@ const WifiProvisionModal = ({ visible, onClose, onProvisioned, theme }) => {
       await new Promise(r => setTimeout(r, 1500));
       setSending(false);
       setResultOk(true);
-      setResultMsg(`Device "${deviceId}" is now connecting to "${ssid}". It will restart automatically.`);
+      setResultMsg(`Device "${deviceId}" is now connecting to "${ssid}". Target values configured.`);
       setStep(4);
       return;
     }
 
     try {
+      const payload = {
+        ssid: ssid.trim(),
+        password,
+        target_temp: numericField(targetTemp),
+        target_humidity: numericField(targetHumidity),
+        threshold_temp: numericField(thresholdTemp),
+        threshold_humidity: numericField(thresholdHumidity),
+      };
+
       const res = await fetchWithTimeout(
         ESP_WIFI_ENDPOINT,
         {
           method:  'POST',
           headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify({ ssid: ssid.trim(), password }),
+          body:    JSON.stringify(payload),
         },
         8000
       );
@@ -233,7 +242,7 @@ const WifiProvisionModal = ({ visible, onClose, onProvisioned, theme }) => {
       setSending(false);
       setResultOk(true);
       setResultMsg(
-        `Device "${deviceId}" received your WiFi credentials and is restarting.\n\nIt will connect to "${ssid}" in a few seconds.`
+        `Device "${deviceId}" received your WiFi credentials and target settings.\n\nIt will connect to "${ssid}" and start monitoring with the configured targets.`
       );
       setStep(4);
     } catch (err) {
@@ -242,11 +251,11 @@ const WifiProvisionModal = ({ visible, onClose, onProvisioned, theme }) => {
         // Timeout usually means ESP rebooted mid-request — that's actually OK
         setResultOk(true);
         setResultMsg(
-          `Device "${deviceId}" received your WiFi credentials and restarted.\n\nIt will connect to "${ssid}" shortly.`
+          `Device "${deviceId}" received your WiFi credentials and target settings.\n\nIt will connect to "${ssid}" and start monitoring shortly.`
         );
       } else {
         setResultOk(false);
-        setResultMsg(`Failed to send credentials: ${err.message}`);
+        setResultMsg(`Failed to send configuration: ${err.message}`);
       }
       setStep(4);
     }
@@ -466,7 +475,7 @@ const WifiProvisionModal = ({ visible, onClose, onProvisioned, theme }) => {
                 <View style={[wm.infoBox, { backgroundColor: theme.primaryLight, borderColor: primary + '30' }]}>
                   <Ionicons name="information-circle-outline" size={16} color={primary} />
                   <Text style={[wm.infoText, { color: primary }]}>
-                    Configure your home WiFi credentials and set target temperature/humidity levels for this device.
+                    Configure your home WiFi credentials and set target temperature/humidity levels for this device. All settings will be sent to the ESP device.
                   </Text>
                 </View>
 
@@ -620,7 +629,7 @@ const WifiProvisionModal = ({ visible, onClose, onProvisioned, theme }) => {
                   <View style={[wm.sendingNote, { backgroundColor: theme.surfaceAlt, borderColor: theme.border }]}>
                     <ActivityIndicator size="small" color={primary} />
                     <Text style={[wm.sendingNoteText, { color: theme.textSecondary }]}>
-                      Sending to 192.168.4.1… The device will restart after receiving credentials.
+                      Sending WiFi credentials and target settings to 192.168.4.1… The device will restart after receiving configuration.
                     </Text>
                   </View>
                 )}
@@ -665,10 +674,11 @@ const WifiProvisionModal = ({ visible, onClose, onProvisioned, theme }) => {
                     <View style={[wm.nextBox, { backgroundColor: theme.surfaceAlt, borderColor: theme.border }]}>
                       <Text style={[wm.nextTitle, { color: theme.text }]}>What happens next:</Text>
                       {[
-                        'The sensor restarts and connects to your WiFi.',
-                        'Target values are saved to your account.',
-                        'The device will start monitoring and reporting data.',
-                        'You can edit settings anytime from the device list.',
+                        'The sensor receives WiFi credentials and target settings',
+                        'Device restarts and connects to your WiFi network',
+                        'Target values are saved to your account for monitoring',
+                        'The device will start monitoring and reporting data',
+                        'You can edit settings anytime from the device list',
                       ].map((txt, i) => (
                         <View key={i} style={wm.nextRow}>
                           <View style={[wm.nextDot, { backgroundColor: primary }]} />

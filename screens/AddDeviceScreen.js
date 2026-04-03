@@ -48,7 +48,20 @@ const fetchWithTimeout = (url, options = {}, ms = FETCH_TIMEOUT_MS) => {
     .finally(() => clearTimeout(timer));
 };
 
+const isWebHttps = () =>
+  Platform.OS === 'web' && typeof window !== 'undefined' && window.location.protocol === 'https:';
+
 const openWifiSettings = () => {
+  if (Platform.OS === 'web') {
+    if (typeof window !== 'undefined') {
+      window.alert(
+        'Cannot open native WiFi settings from the browser.\n\n' +
+        'Please manually connect to ThermoGo-XXXX in your device WiFi settings, then return and tap "Already connected — Continue".'
+      );
+    }
+    return;
+  }
+
   if (Platform.OS === 'ios') {
     Linking.openURL('App-Prefs:WIFI').catch(() => Linking.openURL('app-settings:'));
   } else {
@@ -122,6 +135,7 @@ const sd = StyleSheet.create({
 const WifiProvisionModal = ({ visible, onClose, onProvisioned, theme }) => {
   const [step,       setStep]      = useState(1);
   const [deviceId,   setDeviceId]  = useState('');
+  const [manualDeviceId, setManualDeviceId] = useState('');
   const [fetching,   setFetching]  = useState(false);
   const [fetchError, setFetchError]= useState('');
   const [ssid,       setSsid]      = useState('');
@@ -140,7 +154,7 @@ const WifiProvisionModal = ({ visible, onClose, onProvisioned, theme }) => {
   // Reset when modal opens
   useEffect(() => {
     if (visible) {
-      setStep(1); setDeviceId(''); setFetching(false); setFetchError('');
+      setStep(1); setDeviceId(''); setManualDeviceId(''); setFetching(false); setFetchError('');
       setSsid(''); setPassword(''); setShowPass(false);
       setTargetTemp(''); setTargetHumidity(''); setThresholdTemp(''); setThresholdHumidity('');
       setSending(false); setResultOk(false); setResultMsg('');
@@ -179,6 +193,13 @@ const WifiProvisionModal = ({ visible, onClose, onProvisioned, theme }) => {
     }
 
     try {
+      if (isWebHttps()) {
+        throw new Error(
+          'Unable to connect to 192.168.4.1 from HTTPS context (browser security blocks mixed content).\n\n' +
+          'Switch to a non-secure URL (http://) or use the mobile app on device (not browser), then retry.'
+        );
+      }
+
       const res = await fetchWithTimeout(ESP_ID_ENDPOINT, {}, 8000);
       if (!res.ok) throw new Error(`Device returned status ${res.status}`);
       const json = await res.json();
@@ -214,6 +235,12 @@ const WifiProvisionModal = ({ visible, onClose, onProvisioned, theme }) => {
       setSending(false);
       setResultOk(true);
       setResultMsg(`Device "${deviceId}" is now connecting to "${ssid}". Target values configured.`);
+      onProvisioned(deviceId, {
+        target_temp: numericField(targetTemp),
+        target_humidity: numericField(targetHumidity),
+        threshold_temp: numericField(thresholdTemp),
+        threshold_humidity: numericField(thresholdHumidity),
+      });
       setStep(4);
       return;
     }
@@ -237,6 +264,14 @@ const WifiProvisionModal = ({ visible, onClose, onProvisioned, theme }) => {
         },
         8000
       );
+
+      const provisionFields = {
+        target_temp: numericField(targetTemp),
+        target_humidity: numericField(targetHumidity),
+        threshold_temp: numericField(thresholdTemp),
+        threshold_humidity: numericField(thresholdHumidity),
+      };
+
       // ESP reboots immediately after saving — it may drop the connection
       // before sending a response. Both ok and abort are treated as success.
       setSending(false);
@@ -244,6 +279,7 @@ const WifiProvisionModal = ({ visible, onClose, onProvisioned, theme }) => {
       setResultMsg(
         `Device "${deviceId}" received your WiFi credentials and target settings.\n\nIt will connect to "${ssid}" and start monitoring with the configured targets.`
       );
+      onProvisioned(deviceId, provisionFields);
       setStep(4);
     } catch (err) {
       setSending(false);
@@ -253,6 +289,12 @@ const WifiProvisionModal = ({ visible, onClose, onProvisioned, theme }) => {
         setResultMsg(
           `Device "${deviceId}" received your WiFi credentials and target settings.\n\nIt will connect to "${ssid}" and start monitoring shortly.`
         );
+        onProvisioned(deviceId, {
+          target_temp: numericField(targetTemp),
+          target_humidity: numericField(targetHumidity),
+          threshold_temp: numericField(thresholdTemp),
+          threshold_humidity: numericField(thresholdHumidity),
+        });
       } else {
         setResultOk(false);
         setResultMsg(`Failed to send configuration: ${err.message}`);
@@ -262,15 +304,6 @@ const WifiProvisionModal = ({ visible, onClose, onProvisioned, theme }) => {
   };
 
   const handleDone = () => {
-    if (resultOk) {
-      const fields = {
-        target_temp: numericField(targetTemp),
-        target_humidity: numericField(targetHumidity),
-        threshold_temp: numericField(thresholdTemp),
-        threshold_humidity: numericField(thresholdHumidity),
-      };
-      onProvisioned(deviceId, fields); // Pass deviceId and target fields
-    }
     onClose();
   };
 
@@ -450,6 +483,34 @@ const WifiProvisionModal = ({ visible, onClose, onProvisioned, theme }) => {
                       <Ionicons name="refresh-outline" size={16} color={primary} />
                       <Text style={[wm.ghostBtnText, { color: primary }]}>Try Again</Text>
                     </TouchableOpacity>
+
+                    <View style={{ marginTop: SPACING.lg }}>
+                      <Text style={[wm.fieldLabel, { color: theme.textMuted }]}>Manual Device ID (fallback)</Text>
+                      <View style={[wm.inputRow, { borderColor: theme.border, backgroundColor: theme.surfaceAlt, minHeight: 48 }]}> 
+                        <Input
+                          value={manualDeviceId}
+                          onChangeText={setManualDeviceId}
+                          placeholder="a1b2c3"
+                          autoCapitalize="none"
+                          autoCorrect={false}
+                          noLabel
+                          style={{ flex: 1, borderWidth: 0, backgroundColor: 'transparent' }}
+                        />
+                        <TouchableOpacity
+                          onPress={() => {
+                            if (manualDeviceId.trim()) {
+                              setDeviceId(manualDeviceId.trim());
+                              setStep(3);
+                              setFetchError('');
+                            }
+                          }}
+                          style={[wm.primaryBtn, { backgroundColor: primary, paddingVertical: 10, paddingHorizontal: SPACING.md, marginLeft: SPACING.sm }]}
+                        >
+                          <Text style={wm.primaryBtnText}>Use ID</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+
                     <TouchableOpacity onPress={() => setStep(1)} style={wm.cancelLink}>
                       <Text style={[wm.cancelText, { color: theme.textMuted }]}>← Back to instructions</Text>
                     </TouchableOpacity>

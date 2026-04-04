@@ -16,7 +16,7 @@ import { Button, Input, Card, Divider } from '../components/UI';
 import { FONT_SIZES, SPACING, RADIUS, CONTENT_MAX_WIDTH } from '../styles/typography';
 
 // ─── ESP config ───────────────────────────────────────────────────────────────
-const ESP_HOST          = 'http://192.168.4.1';
+const ESP_HOST          = 'https://192.168.4.1:443';
 const ESP_ID_ENDPOINT   = `${ESP_HOST}/`;          // GET  → { device_id: "a1b2c3" }
 const ESP_WIFI_ENDPOINT = `${ESP_HOST}/add_wifi`;  // POST → { ssid, password }
 const FETCH_TIMEOUT_MS  = 8000;
@@ -41,11 +41,25 @@ const sanitizeNum = (v) => {
   return (withMinus ? '-' : '') + sanitized;
 };
 
-const fetchWithTimeout = (url, options = {}, ms = FETCH_TIMEOUT_MS) => {
+const fetchWithTimeout = async (url, options = {}, ms = FETCH_TIMEOUT_MS) => {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), ms);
-  return fetch(url, { ...options, signal: controller.signal })
-    .finally(() => clearTimeout(timer));
+  const nativeFetch = isNative ? require('react-native-ssl-pinning').fetch : fetch;
+
+  try {
+    if (isNative) {
+      const { signal, ...safeOptions } = options;
+      return await nativeFetch(url, {
+        ...safeOptions,
+        timeoutInterval: ms,
+        disableAllSecurity: true,
+      });
+    }
+
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
 };
 
 const isWebHttps = () =>

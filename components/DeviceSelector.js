@@ -6,10 +6,12 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../styles/ThemeContext';
 import { FONT_SIZES, SPACING, RADIUS } from '../styles/typography';
+import UpdateWiFiModal from './UpdateWiFiModal';
 
 const DeviceSelector = ({ devices, selectedDevice, onSelect }) => {
   const { theme }    = useTheme();
   const [open, setOpen] = useState(false);
+  const [wifiUpdateDevice, setWifiUpdateDevice] = useState(null);
 
   if (!devices || devices.length === 0) return null;
 
@@ -142,12 +144,27 @@ const DeviceSelector = ({ devices, selectedDevice, onSelect }) => {
                         )}
                       </View>
 
-                      {/* Checkmark */}
-                      {isSelected ? (
-                        <Ionicons name="checkmark-circle" size={22} color={theme.primary} />
-                      ) : (
-                        <Ionicons name="chevron-forward" size={16} color={theme.textMuted} />
-                      )}
+                      {/* Checkmark or chevron on right side */}
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: SPACING.xs }}>
+                        <TouchableOpacity
+                          onPress={(e) => {
+                            e.stopPropagation?.();
+                            setWifiUpdateDevice(device);
+                          }}
+                          activeOpacity={0.6}
+                          style={[
+                            styles.wifiBtn,
+                            { backgroundColor: theme.primaryLight, borderColor: theme.primary }
+                          ]}
+                        >
+                          <Ionicons name="wifi-outline" size={14} color={theme.primary} />
+                        </TouchableOpacity>
+                        {isSelected ? (
+                          <Ionicons name="checkmark-circle" size={22} color={theme.primary} />
+                        ) : (
+                          <Ionicons name="chevron-forward" size={16} color={theme.textMuted} />
+                        )}
+                      </View>
                     </TouchableOpacity>
 
                     {/* Row divider */}
@@ -161,6 +178,20 @@ const DeviceSelector = ({ devices, selectedDevice, onSelect }) => {
           </Pressable>
         </Pressable>
       </Modal>
+
+      {/* Update WiFi Modal */}
+      {wifiUpdateDevice && (
+        <UpdateWiFiModal
+          visible={!!wifiUpdateDevice}
+          device={wifiUpdateDevice}
+          theme={theme}
+          onClose={() => setWifiUpdateDevice(null)}
+          onSuccess={() => {
+            // Modal will close and update device
+            setWifiUpdateDevice(null);
+          }}
+        />
+      )}
     </>
   );
 };
@@ -273,6 +304,15 @@ const styles = StyleSheet.create({
     borderRadius:   RADIUS.sm,
   },
   chipText: { fontSize: 10, fontWeight: '600' },
+
+  wifiBtn: {
+    width:          32,
+    height:         32,
+    borderRadius:   RADIUS.md,
+    alignItems:     'center',
+    justifyContent: 'center',
+    borderWidth:    1.5,
+  },
 
   rowDivider: { height: 1, marginHorizontal: SPACING.xs },
 });

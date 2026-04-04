@@ -26,9 +26,27 @@ const fetchWithTimeout = (url, options = {}, ms = FETCH_TIMEOUT_MS) => {
 const isWebHttps = () =>
   Platform.OS === 'web' && typeof window !== 'undefined' && window.location.protocol === 'https:';
 
+const isIOS = () =>
+  Platform.OS === 'ios' ||
+  (Platform.OS === 'web' && typeof navigator !== 'undefined' &&
+   /iPad|iPhone|iPod/.test(navigator.userAgent));
+
+const isWebIOS = () =>
+  Platform.OS === 'web' && typeof navigator !== 'undefined' &&
+  /iPad|iPhone|iPod/.test(navigator.userAgent) &&
+  window.location.protocol === 'https:';
+
 const openWifiSettings = () => {
   if (Platform.OS === 'web') {
-    if (typeof window !== 'undefined') {
+    if (isIOS()) {
+      window.alert(
+        'iOS WiFi Settings:\n\n' +
+        '1. Open Settings app\n' +
+        '2. Tap Wi-Fi\n' +
+        '3. Find and connect to ThermoGo-XXXX\n' +
+        '4. Return to this app and tap "Continue"'
+      );
+    } else {
       window.alert(
         'Cannot open native WiFi settings from the browser.\n\n' +
         'Please manually connect to ThermoGo-XXXX in your device WiFi settings, then return and tap "Already connected — Continue".'
@@ -147,10 +165,20 @@ const UpdateWiFiModal = ({ visible, device, onClose, onSuccess, theme }) => {
 
     try {
       if (isWebHttps()) {
-        throw new Error(
-          'Unable to connect to 192.168.4.1 from HTTPS context (browser security blocks mixed content).\n\n' +
-          'Switch to a non-secure URL (http://) or use the mobile app on device (not browser), then retry.'
-        );
+        if (isWebIOS()) {
+          throw new Error(
+            'iOS Safari blocks connections to local devices from HTTPS websites.\n\n' +
+            'Solutions:\n' +
+            '• Use the native ThermoGo app instead of the web version\n' +
+            '• Or access this site via http:// (not https://) if available\n' +
+            '• Or use an Android device for WiFi setup'
+          );
+        } else {
+          throw new Error(
+            'Unable to connect to 192.168.4.1 from HTTPS context (browser security blocks mixed content).\n\n' +
+            'Switch to a non-secure URL (http://) or use the mobile app on device (not browser), then retry.'
+          );
+        }
       }
 
       const payload = {
@@ -251,49 +279,118 @@ const UpdateWiFiModal = ({ visible, device, onClose, onSuccess, theme }) => {
                 </View>
 
                 {/* Steps */}
-                {[
-                  {
-                    icon: 'power-outline',
-                    title: 'Power on your sensor',
-                    desc: 'Make sure your ThermoGo device is powered on and in pairing mode.',
-                  },
-                  {
-                    icon: 'settings-outline',
-                    title: 'Open WiFi settings',
-                    desc: 'Tap the button below to open your phone\'s WiFi settings.',
-                  },
-                  {
-                    icon: 'wifi-outline',
-                    title: 'Connect to ThermoGo hotspot',
-                    desc: 'Find and connect to the network named "ThermoGo-" followed by your device ID. No password needed.',
-                  },
-                  {
-                    icon: 'arrow-back-outline',
-                    title: 'Come back here',
-                    desc: 'Return to this app when connected. You\'ll enter your new WiFi credentials.',
-                  },
-                ].map((item, i) => (
-                  <View key={i} style={[wm.instrRow, { borderColor: theme.border, backgroundColor: theme.surfaceAlt }]}>
-                    <View style={[wm.instrBadge, { backgroundColor: primary }]}>
-                      <Text style={wm.instrBadgeText}>{i + 1}</Text>
+                {isIOS() && Platform.OS === 'web' ? (
+                  // iOS Web specific instructions
+                  [
+                    {
+                      icon: 'settings-outline',
+                      title: 'Open iOS Settings',
+                      desc: 'Tap the button below or manually open Settings app on your iPhone/iPad.',
+                    },
+                    {
+                      icon: 'wifi-outline',
+                      title: 'Go to Wi-Fi',
+                      desc: 'In Settings, tap Wi-Fi and find ThermoGo-XXXX network.',
+                    },
+                    {
+                      icon: 'checkmark-circle-outline',
+                      title: 'Connect to hotspot',
+                      desc: 'Tap ThermoGo-XXXX to connect (no password needed).',
+                    },
+                    {
+                      icon: 'arrow-back-outline',
+                      title: 'Return here',
+                      desc: 'Come back to this app and tap "Continue" below.',
+                    },
+                  ].map((item, i) => (
+                    <View key={i} style={[wm.instrRow, { borderColor: theme.border, backgroundColor: theme.surfaceAlt }]}>
+                      <View style={[wm.instrBadge, { backgroundColor: primary }]}>
+                        <Text style={wm.instrBadgeText}>{i + 1}</Text>
+                      </View>
+                      <View style={[wm.instrIconCircle, { backgroundColor: theme.primaryLight }]}>
+                        <Ionicons name={item.icon} size={18} color={primary} />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={[wm.instrTitle, { color: theme.text }]}>{item.title}</Text>
+                        <Text style={[wm.instrDesc, { color: theme.textSecondary }]}>{item.desc}</Text>
+                      </View>
                     </View>
-                    <View style={[wm.instrIconCircle, { backgroundColor: theme.primaryLight }]}>
-                      <Ionicons name={item.icon} size={18} color={primary} />
+                  ))
+                ) : (
+                  // Standard instructions for other platforms
+                  [
+                    {
+                      icon: 'power-outline',
+                      title: 'Power on your sensor',
+                      desc: 'Make sure your ThermoGo device is powered on and in pairing mode.',
+                    },
+                    {
+                      icon: 'settings-outline',
+                      title: 'Open WiFi settings',
+                      desc: 'Tap the button below to open your phone\'s WiFi settings.',
+                    },
+                    {
+                      icon: 'wifi-outline',
+                      title: 'Connect to ThermoGo hotspot',
+                      desc: 'Find and connect to the network named "ThermoGo-" followed by your device ID. No password needed.',
+                    },
+                    {
+                      icon: 'arrow-back-outline',
+                      title: 'Come back here',
+                      desc: 'Return to this app when connected. You\'ll enter your new WiFi credentials.',
+                    },
+                  ].map((item, i) => (
+                    <View key={i} style={[wm.instrRow, { borderColor: theme.border, backgroundColor: theme.surfaceAlt }]}>
+                      <View style={[wm.instrBadge, { backgroundColor: primary }]}>
+                        <Text style={wm.instrBadgeText}>{i + 1}</Text>
+                      </View>
+                      <View style={[wm.instrIconCircle, { backgroundColor: theme.primaryLight }]}>
+                        <Ionicons name={item.icon} size={18} color={primary} />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={[wm.instrTitle, { color: theme.text }]}>{item.title}</Text>
+                        <Text style={[wm.instrDesc, { color: theme.textSecondary }]}>{item.desc}</Text>
+                      </View>
                     </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={[wm.instrTitle, { color: theme.text }]}>{item.title}</Text>
-                      <Text style={[wm.instrDesc, { color: theme.textSecondary }]}>{item.desc}</Text>
-                    </View>
-                  </View>
-                ))}
+                  ))
+                )}
 
                 {/* Warning */}
-                <View style={[wm.warnBox, { backgroundColor: theme.warningBg, borderColor: theme.warning }]}>
-                  <Ionicons name="information-circle-outline" size={16} color={theme.warning} />
-                  <Text style={[wm.warnText, { color: theme.warning }]}>
-                    Internet will be unavailable while connected to the ThermoGo hotspot. This is normal.
-                  </Text>
-                </View>
+                {isWebIOS() ? (
+                  // iOS HTTPS warning
+                  <View style={[wm.warnBox, { backgroundColor: theme.dangerBg, borderColor: theme.danger }]}>
+                    <Ionicons name="alert-circle-outline" size={16} color={theme.danger} />
+                    <Text style={[wm.warnText, { color: theme.danger }]}>
+                      iOS Limitation: Safari blocks local device connections from HTTPS websites. Use the native app or access via http:// instead.
+                    </Text>
+                  </View>
+                ) : (
+                  // Standard warning
+                  <View style={[wm.warnBox, { backgroundColor: theme.warningBg, borderColor: theme.warning }]}>
+                    <Ionicons name="information-circle-outline" size={16} color={theme.warning} />
+                    <Text style={[wm.warnText, { color: theme.warning }]}>
+                      Internet will be unavailable while connected to the ThermoGo hotspot. This is normal.
+                    </Text>
+                  </View>
+                )}
+
+                {/* iOS Alternative Methods */}
+                {isWebIOS() && (
+                  <View style={[wm.altMethodsBox, { backgroundColor: theme.surfaceAlt, borderColor: theme.border }]}>
+                    <Text style={[wm.altMethodsTitle, { color: theme.text }]}>Alternative Methods for iOS:</Text>
+                    {[
+                      'Use the native ThermoGo app instead of the web version',
+                      'Access this site via http:// instead of https:// (if available)',
+                      'Use an Android device for WiFi setup',
+                      'Contact support for device-specific setup instructions',
+                    ].map((method, i) => (
+                      <View key={i} style={wm.altMethodRow}>
+                        <View style={[wm.altMethodDot, { backgroundColor: primary }]} />
+                        <Text style={[wm.altMethodText, { color: theme.textSecondary }]}>{method}</Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
 
                 {/* Open WiFi settings */}
                 <TouchableOpacity
@@ -340,6 +437,7 @@ const UpdateWiFiModal = ({ visible, device, onClose, onSuccess, theme }) => {
                   <Ionicons name="information-circle-outline" size={16} color={primary} />
                   <Text style={[wm.infoText, { color: primary }]}>
                     Enter your home WiFi network details. The device will receive these credentials and reconnect to your network.
+                    {isWebIOS() ? '\n\nNote: iOS Safari may block this connection. Consider using the native app instead.' : ''}
                   </Text>
                 </View>
 
@@ -549,6 +647,13 @@ const wm = StyleSheet.create({
   nextRow:      { flexDirection: 'row', alignItems: 'flex-start', gap: SPACING.sm, marginBottom: SPACING.xs },
   nextDot:      { width: 6, height: 6, borderRadius: 3, marginTop: 6, flexShrink: 0 },
   nextText:     { flex: 1, fontSize: FONT_SIZES.sm, lineHeight: 20 },
+
+  // Alternative methods
+  altMethodsBox:   { borderWidth: 1, borderRadius: RADIUS.md, padding: SPACING.md, marginTop: SPACING.md },
+  altMethodsTitle: { fontSize: FONT_SIZES.sm, fontWeight: '700', marginBottom: SPACING.sm },
+  altMethodRow:    { flexDirection: 'row', alignItems: 'flex-start', gap: SPACING.sm, marginBottom: SPACING.xs },
+  altMethodDot:    { width: 6, height: 6, borderRadius: 3, marginTop: 6, flexShrink: 0 },
+  altMethodText:   { flex: 1, fontSize: FONT_SIZES.sm, lineHeight: 18 },
 });
 
 export default UpdateWiFiModal;

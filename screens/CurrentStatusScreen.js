@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, RefreshControl,
+  View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../styles/ThemeContext';
@@ -89,6 +89,7 @@ const CurrentStatusScreen = ({ navigation }) => {
   const [loading,        setLoading]        = useState(true);
   const [refreshing,     setRefreshing]     = useState(false);
   const [lastUpdated,    setLastUpdated]    = useState(null);
+  const [error,          setError]          = useState(null);
 
   const channelRef = useRef(null);
 
@@ -99,7 +100,9 @@ const CurrentStatusScreen = ({ navigation }) => {
       setSelectedDevice(prev => prev ?? MOCK_DEVICES[0]);
       return;
     }
-    const { data } = await getUserDevices(user.id);
+    const { data, error: devErr } = await getUserDevices(user.id);
+    if (devErr) { setError('Failed to load devices. Pull down to retry.'); return; }
+    setError(null);
     if (data?.length) {
       setDevices(data);
       // Keep current selection if it still exists, otherwise default to first
@@ -122,7 +125,7 @@ const CurrentStatusScreen = ({ navigation }) => {
 
   // ── Fetch latest reading for selected device ───────────────────────────────
   const fetchReading = useCallback(async () => {
-    if (!selectedDevice) return;
+    if (!selectedDevice) { setLoading(false); return; }
     if (USE_MOCK) {
       setReading({
         ...MOCK_LATEST_READING,
@@ -135,7 +138,9 @@ const CurrentStatusScreen = ({ navigation }) => {
       return;
     }
     // selectedDevice.id is the uuid PK of the devices row
-    const { data } = await getLatestReading(selectedDevice.id);
+    const { data, error: readErr } = await getLatestReading(selectedDevice.id);
+    if (readErr) { setError('Failed to fetch sensor reading. Pull down to retry.'); setLoading(false); return; }
+    setError(null);
     if (data) { setReading(data); setLastUpdated(new Date()); }
     setLoading(false);
   }, [selectedDevice]);
@@ -152,12 +157,9 @@ const CurrentStatusScreen = ({ navigation }) => {
     // Clean up previous subscription before creating a new one
     if (channelRef.current) channelRef.current.unsubscribe();
 
-    channelRef.current = subscribeToSensorReadings((payload) => {
-      // Only update UI if the new reading belongs to the currently selected device
-      if (payload.new?.device_id === selectedDevice.id) {
-        setReading(payload.new);
-        setLastUpdated(new Date());
-      }
+    channelRef.current = subscribeToSensorReadings(selectedDevice.id, (payload) => {
+      setReading(payload.new);
+      setLastUpdated(new Date());
     });
 
     return () => {
@@ -177,6 +179,7 @@ const CurrentStatusScreen = ({ navigation }) => {
 
   const onRefresh = async () => {
     setRefreshing(true);
+    await loadDevices();
     await fetchReading();
     setRefreshing(false);
   };
@@ -202,6 +205,14 @@ const CurrentStatusScreen = ({ navigation }) => {
           </View>
         )}
 
+        {/* Error banner */}
+        {error && (
+          <View style={[styles.errorBanner, { backgroundColor: theme.dangerBg, borderColor: theme.danger }]}>
+            <Ionicons name="warning-outline" size={16} color={theme.danger} />
+            <Text style={[styles.errorText, { color: theme.danger }]}>{error}</Text>
+          </View>
+        )}
+
         {/* Device selector */}
         <DeviceSelector
           devices={devices}
@@ -218,12 +229,14 @@ const CurrentStatusScreen = ({ navigation }) => {
         ) : (
           <>
             {/* Live indicator */}
-            <View style={styles.liveRow}>
-              <View style={[styles.liveDot, { backgroundColor: theme.success }]} />
-              <Text style={[styles.liveText, { color: theme.textSecondary }]}>
-                Live · Updated {formatTime(lastUpdated)}
-              </Text>
-            </View>
+            {lastUpdated && (
+              <View style={styles.liveRow}>
+                <View style={[styles.liveDot, { backgroundColor: theme.success }]} />
+                <Text style={[styles.liveText, { color: theme.textSecondary }]}>
+                  Live · Updated {formatTime(lastUpdated)}
+                </Text>
+              </View>
+            )}
 
             {loading ? (
               <Text style={[styles.loadingText, { color: theme.textMuted }]}>Loading...</Text>
@@ -263,6 +276,15 @@ const CurrentStatusScreen = ({ navigation }) => {
                     </View>
                   ))}
                 </Card>
+
+                {/* Ask AI button */}
+                <TouchableOpacity
+                  style={[styles.askAiBtn, { backgroundColor: theme.primary }]}
+                  onPress={() => navigation.navigate('AskAI', { deviceId: selectedDevice.id })}
+                >
+                  <Ionicons name="sparkles-outline" size={18} color="#fff" />
+                  <Text style={styles.askAiText}>Ask AI about this device</Text>
+                </TouchableOpacity>
               </>
             ) : (
               <Card>
@@ -302,6 +324,23 @@ const styles = StyleSheet.create({
   infoKey: { fontSize: FONT_SIZES.sm },
   infoValue: { fontSize: FONT_SIZES.sm, fontWeight: '600', textAlign: 'right', flex: 1, marginLeft: SPACING.sm },
   loadingText: { textAlign: 'center', marginTop: SPACING.xl },
+  askAiBtn: {
+    flexDirection:  'row',
+    alignItems:     'center',
+    justifyContent: 'center',
+    gap:            SPACING.xs,
+    borderRadius:   RADIUS.lg,
+    paddingVertical: SPACING.md,
+    marginTop:      SPACING.sm,
+  },
+  askAiText: { color: '#fff', fontSize: FONT_SIZES.base, fontWeight: '700' },
+  errorBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: SPACING.xs,
+    borderWidth: 1, borderRadius: RADIUS.md,
+    paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm,
+    marginBottom: SPACING.md,
+  },
+  errorText: { flex: 1, fontSize: FONT_SIZES.sm, fontWeight: '500' },
 });
 
 export default CurrentStatusScreen;

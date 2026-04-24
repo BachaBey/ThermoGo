@@ -80,9 +80,9 @@ const NumInput = ({ label, value, onChangeText, suffix, placeholder, theme }) =>
         value={value}
         onChangeText={(v) => onChangeText(sanitizeNum(v))}
         placeholder={placeholder}
-        keyboardType="default"
+        keyboardType="decimal-pad"
         style={ni.input}
-        noLabel
+        noBorder
       />
       <Text style={[ni.suffix, { color: theme.textSecondary }]}>{suffix}</Text>
     </View>
@@ -886,7 +886,15 @@ const WifiNetworksSection = ({ deviceId, theme }) => {
   };
 
   useEffect(() => {
-    if (deviceId) fetchNetworks();
+    if (!deviceId) return;
+    let cancelled = false;
+    setLoadingList(true);
+    getDeviceWifiNetworks(deviceId).then(({ data, error }) => {
+      if (cancelled) return;
+      setLoadingList(false);
+      if (!error) setNetworks(data || []);
+    });
+    return () => { cancelled = true; };
   }, [deviceId]);
 
   // Auto-clear messages
@@ -1301,7 +1309,7 @@ const ed = StyleSheet.create({
 // ═════════════════════════════════════════════════════════════════════════════
 // MAIN SCREEN
 // ═════════════════════════════════════════════════════════════════════════════
-const AddDeviceScreen = () => {
+const AddDeviceScreen = ({ navigation }) => {
   const { theme } = useTheme();
   const { user }  = useAuth();
 
@@ -1313,12 +1321,21 @@ const AddDeviceScreen = () => {
   const [editingDevice,   setEditingDevice]  = useState(null);
   const [showEditModal,   setShowEditModal]  = useState(false);
   const [showWifiModal,   setShowWifiModal]  = useState(false);
+  const mountedRef = useRef(true);
 
   useEffect(() => {
     if (!success && !error) return;
     const t = setTimeout(() => { setSuccess(''); setError(''); }, 5000);
     return () => clearTimeout(t);
   }, [success, error]);
+
+  useEffect(() => {
+    const unsub = navigation?.addListener('blur', () => {
+      setSuccess('');
+      setError('');
+    });
+    return unsub;
+  }, [navigation]);
 
   const fetchDevices = async () => {
     if (USE_MOCK) {
@@ -1328,13 +1345,17 @@ const AddDeviceScreen = () => {
       return;
     }
     const { data } = await getUserDevices(user.id);
-    setExistingDevices(data || []);
+    if (mountedRef.current) setExistingDevices(data || []);
   };
 
-  useEffect(() => { fetchDevices(); }, []);
+  useEffect(() => {
+    mountedRef.current = true;
+    fetchDevices();
+    return () => { mountedRef.current = false; };
+  }, []);
   useEffect(() => {
     if (USE_MOCK) return;
-    const channel = subscribeToDevices(() => fetchDevices());
+    const channel = subscribeToDevices(user.id, () => fetchDevices());
     return () => channel.unsubscribe();
   }, []);
 
@@ -1589,6 +1610,9 @@ const AddDeviceScreen = () => {
                       </View>
                     </View>
                     <View style={styles.actionBtns}>
+                      <TouchableOpacity onPress={() => navigation.navigate('AskAI', { deviceId: device.id })} style={[styles.iconBtn, { borderColor: theme.primary }]}>
+                        <Ionicons name="sparkles-outline" size={16} color={theme.primary} />
+                      </TouchableOpacity>
                       <TouchableOpacity onPress={() => { setEditingDevice(device); setShowEditModal(true); }} style={[styles.iconBtn, { borderColor: theme.primary }]}>
                         <Ionicons name="create-outline" size={16} color={theme.primary} />
                       </TouchableOpacity>

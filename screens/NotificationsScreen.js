@@ -66,7 +66,7 @@ const FILTERS = [
 ];
 
 const formatRelativeTime = (dateStr) => {
-  const diff = Math.floor((Date.now() - new Date(dateStr)) / 1000);
+  const diff = Math.max(0, Math.floor((Date.now() - new Date(dateStr)) / 1000));
   if (diff < 60)    return `${diff}s ago`;
   if (diff < 3600)  return `${Math.floor(diff / 60)}m ago`;
   if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
@@ -165,6 +165,7 @@ const NotificationsScreen = () => {
   const [refreshing,    setRefreshing]    = useState(false);
   const [filter,        setFilter]        = useState('all');
   const [markingAll,    setMarkingAll]    = useState(false);
+  const [error,         setError]         = useState(null);
 
   const channelRef = useRef(null);
 
@@ -176,7 +177,9 @@ const NotificationsScreen = () => {
       return;
     }
     if (!user) return;
-    const { data } = await getNotifications(user.id);
+    const { data, error: fetchErr } = await getNotifications(user.id);
+    if (fetchErr) { setError('Failed to load alerts. Pull down to retry.'); setLoading(false); return; }
+    setError(null);
     setNotifications(data || []);
     setLoading(false);
   };
@@ -189,7 +192,7 @@ const NotificationsScreen = () => {
     if (channelRef.current) { channelRef.current.unsubscribe(); }
 
     channelRef.current = supabase
-      .channel('notifications-live')
+      .channel(`notifications-live-${user.id}`)
       .on(
         'postgres_changes',
         {
@@ -310,6 +313,14 @@ const NotificationsScreen = () => {
           </View>
         </View>
       </View>
+
+      {/* ── Error banner ── */}
+      {error && (
+        <View style={[styles.errorBanner, { backgroundColor: theme.dangerBg, borderColor: theme.danger, marginHorizontal: SPACING.base, marginTop: SPACING.md }]}>
+          <Ionicons name="warning-outline" size={16} color={theme.danger} />
+          <Text style={[styles.errorText, { color: theme.danger }]}>{error}</Text>
+        </View>
+      )}
 
       {/* ── List ── */}
       <FlatList
@@ -448,6 +459,12 @@ const styles = StyleSheet.create({
   },
   emptyTitle:    { fontSize: FONT_SIZES.lg,  fontWeight: '700' },
   emptySubtitle: { fontSize: FONT_SIZES.base, textAlign: 'center', paddingHorizontal: SPACING.xl },
+  errorBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: SPACING.xs,
+    borderWidth: 1, borderRadius: RADIUS.md,
+    paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm,
+  },
+  errorText: { flex: 1, fontSize: FONT_SIZES.sm, fontWeight: '500' },
 });
 
 export default NotificationsScreen;

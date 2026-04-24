@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView,
-  KeyboardAvoidingView, Platform, TouchableOpacity,
+  KeyboardAvoidingView, Platform, TouchableOpacity, Alert,
 } from 'react-native';
 import { useTheme } from '../styles/ThemeContext';
 import { useAuth } from '../services/AuthContext';
@@ -9,7 +9,7 @@ import { updateProfile, signOut } from '../services/supabase';
 import { Button, Input, Card, Divider } from '../components/UI';
 import { FONT_SIZES, SPACING, RADIUS, CONTENT_MAX_WIDTH } from '../styles/typography';
 
-const ProfileScreen = () => {
+const ProfileScreen = ({ navigation }) => {
   const { theme }                        = useTheme();
   const { user, profile, refreshProfile } = useAuth();
 
@@ -20,6 +20,15 @@ const ProfileScreen = () => {
   const [loading,   setLoading]   = useState(false);
   const [error,     setError]     = useState('');
   const [success,   setSuccess]   = useState('');
+
+  // Sync fields whenever the profile loads or refreshes
+  useEffect(() => {
+    if (profile) {
+      setFirstName(profile.first_name || '');
+      setLastName(profile.last_name   || '');
+      setPhone(profile.phone          || '');
+    }
+  }, [profile]);
 
   const handleSave = async () => {
   setError(''); setSuccess('');
@@ -52,6 +61,15 @@ useEffect(() => {
   }, 3000);
   return () => clearTimeout(timer);
 }, [success, error]);
+
+// Clear messages immediately when user leaves the screen
+useEffect(() => {
+  const unsub = navigation?.addListener('blur', () => {
+    setSuccess('');
+    setError('');
+  });
+  return unsub;
+}, [navigation]);
 
   const handleCancel = () => {
     setFirstName(profile?.first_name || '');
@@ -171,7 +189,10 @@ useEffect(() => {
           <Button
             title="Sign Out"
             variant="danger"
-            onPress={signOut}
+            onPress={async () => {
+              const { error: signOutError } = await signOut();
+              if (signOutError) Alert.alert('Sign Out Failed', 'Could not sign out. Please try again.');
+            }}
             style={{ marginTop: SPACING.lg }}
           />
         </View>

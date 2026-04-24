@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, Dimensions,
-  TouchableOpacity, Modal, Pressable, FlatList,
+  TouchableOpacity, Modal, Pressable, FlatList, ActivityIndicator,
 } from 'react-native';
 import { LineChart } from 'react-native-chart-kit';
 import { Ionicons }   from '@expo/vector-icons';
@@ -575,6 +575,7 @@ const TemperatureChartScreen = ({ navigation }) => {
   const [loading,        setLoading]        = useState(true);
   const [activeMetric,   setActiveMetric]   = useState('temperature');
   const [dateError,      setDateError]      = useState('');
+  const [fetchError,     setFetchError]     = useState(null);
 
   // Start date/time
   const [startDate, setStartDate] = useState(initStart);
@@ -611,7 +612,9 @@ const TemperatureChartScreen = ({ navigation }) => {
       setSelectedDevice(prev => prev ?? MOCK_DEVICES[0]);
       return;
     }
-    const { data } = await getUserDevices(user.id);
+    const { data, error: devErr } = await getUserDevices(user.id);
+    if (devErr) { setFetchError('Failed to load devices. Pull down to retry.'); return; }
+    setFetchError(null);
     if (data?.length) {
       setDevices(data);
       setSelectedDevice(prev => {
@@ -652,15 +655,23 @@ const TemperatureChartScreen = ({ navigation }) => {
         setReadings(all.filter(r => new Date(r.created_at) >= start && new Date(r.created_at) <= end));
         return;
       }
-      const { data } = await getSensorHistory(selectedDevice.id, start, end);
+      const { data, error: histErr } = await getSensorHistory(selectedDevice.id, start, end);
+      if (histErr) { setFetchError('Failed to load sensor history. Try again.'); return; }
+      setFetchError(null);
       setReadings(data || []);
     } finally {
       setLoading(false);
     }
   }, [selectedDevice, startDate, startHour, startMin, endDate, endHour, endMin]);
 
-  // Fetch when device changes
-  useEffect(() => { fetchHistory(); }, [selectedDevice]);
+  // Always keep the ref pointing to the latest fetchHistory so the device-change
+  // effect can call it without closing over stale date values
+  const fetchHistoryRef = useRef(fetchHistory);
+  useEffect(() => { fetchHistoryRef.current = fetchHistory; });
+
+  // Auto-fetch only when the selected device changes — date picker changes require
+  // the user to explicitly press "Apply Range"
+  useEffect(() => { if (selectedDevice) fetchHistoryRef.current(); }, [selectedDevice]);
 
   // ── Presets ────────────────────────────────────────────────────────────────
   const applyPreset = (days) => {
@@ -715,6 +726,14 @@ const TemperatureChartScreen = ({ navigation }) => {
       <View style={{ maxWidth: CONTENT_MAX_WIDTH, width: '100%', alignSelf: 'center' }}>
 
         <DeviceSelector devices={devices} selectedDevice={selectedDevice} onSelect={setSelectedDevice} />
+
+        {/* ── Fetch error ── */}
+        {fetchError && (
+          <View style={[styles.errorBanner, { backgroundColor: theme.dangerBg, borderColor: theme.danger }]}>
+            <Ionicons name="warning-outline" size={16} color={theme.danger} />
+            <Text style={[styles.errorText, { color: theme.danger }]}>{fetchError}</Text>
+          </View>
+        )}
 
         {/* ── Metric toggle ── */}
         <View style={styles.metricRow}>
@@ -815,7 +834,7 @@ const TemperatureChartScreen = ({ navigation }) => {
         </Card>
 
         {/* ── Stats ── */}
-        {readings.length > 0 && (
+        {!loading && readings.length > 0 && (
           <View style={styles.statsRow}>
             {[
               { label: 'Min', val: minVal, icon: 'arrow-down-outline',  color: theme.info    },
@@ -850,8 +869,8 @@ const TemperatureChartScreen = ({ navigation }) => {
 
           {loading ? (
             <View style={styles.placeholderWrap}>
-              <Ionicons name="hourglass-outline" size={32} color={theme.textMuted} />
-              <Text style={[styles.placeholder, { color: theme.textMuted }]}>Loading...</Text>
+              <ActivityIndicator size="large" color={theme.primary} />
+              <Text style={[styles.placeholder, { color: theme.textMuted }]}>Loading data…</Text>
             </View>
           ) : chartData ? (
             <View style={styles.chartContainer}>
@@ -989,6 +1008,13 @@ const TemperatureChartScreen = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   container: { padding: SPACING.base, paddingTop: SPACING.lg, paddingBottom: 80 },
+  errorBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: SPACING.xs,
+    borderWidth: 1, borderRadius: RADIUS.md,
+    paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm,
+    marginBottom: SPACING.md,
+  },
+  errorText: { flex: 1, fontSize: FONT_SIZES.sm, fontWeight: '500' },
 
   metricRow: { flexDirection: 'row', gap: SPACING.sm, marginBottom: SPACING.md },
   metricBtn: {

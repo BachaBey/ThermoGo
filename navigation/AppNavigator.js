@@ -19,6 +19,7 @@ import TemperatureChartScreen from '../screens/TemperatureChartScreen';
 import NotificationsScreen    from '../screens/NotificationsScreen';
 import AddDeviceScreen        from '../screens/AddDeviceScreen';
 import ProfileScreen          from '../screens/ProfileScreen';
+import AskAIScreen            from '../screens/AskAIScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab   = createBottomTabNavigator();
@@ -29,6 +30,21 @@ const ICON_MAP = {
   Chart:     { outline: 'analytics-outline',    filled: 'analytics'    },
   Alerts:    { outline: 'notifications-outline',filled: 'notifications' },
   Profile:   { outline: 'person-outline',       filled: 'person'       },
+};
+
+// ─── Nav bar logo (switches with theme) ──────────────────────────────────────
+const NAV_LOGO_LIGHT = require('../assets/icon-nav.png');
+const NAV_LOGO_DARK  = require('../assets/logo-dark.png');
+
+const NavLogo = () => {
+  const { isDark } = useTheme();
+  return (
+    <Image
+      source={isDark ? NAV_LOGO_DARK : NAV_LOGO_LIGHT}
+      style={styles.navLogo}
+      resizeMode="contain"
+    />
+  );
 };
 
 // ─── Special "Add Device" centre button ──────────────────────────────────────
@@ -59,18 +75,12 @@ const MainTabs = () => {
     </TouchableOpacity>
   );
 
-  const headerLeft = () => (
-    <Image
-      source={require('../assets/icon-nav.png')}
-      style={styles.navLogo}
-      resizeMode="contain"
-    />
-  );
+  const headerLeft = () => <NavLogo />;
 
   const sharedHeader = {
     headerStyle:         { backgroundColor: theme.navBg },
-    headerTitleStyle:    { color: theme.primary, fontSize: FONT_SIZES.lg, fontWeight: '700', letterSpacing: -0.5 },
-    headerTintColor:     theme.primary,
+    headerTitleStyle:    { color: theme.navText, fontSize: FONT_SIZES.lg, fontWeight: '700', letterSpacing: -0.5 },
+    headerTintColor:     theme.navText,
     headerLeft,
     headerRight,
     headerShadowVisible: true,
@@ -158,26 +168,39 @@ const MainTabs = () => {
   );
 };
 
+// ─── Splash / loading screen ──────────────────────────────────────────────────
+const SplashScreen = () => {
+  const { theme, isDark } = useTheme();
+  return (
+    <View style={[styles.splash, { backgroundColor: theme.background }]}>
+      <Image
+        source={isDark ? NAV_LOGO_DARK : NAV_LOGO_LIGHT}
+        style={styles.splashLogo}
+        resizeMode="contain"
+      />
+      <Text style={[styles.splashTitle, { color: theme.text }]}>ThermoGo</Text>
+      <Text style={[styles.splashSub, { color: theme.textSecondary }]}>
+        Real-time temperature monitoring
+      </Text>
+      <ActivityIndicator size="large" color={theme.primary} style={styles.splashSpinner} />
+    </View>
+  );
+};
+
 // ─── Root navigator ───────────────────────────────────────────────────────────
 const AppNavigator = () => {
-  const { user, error } = useAuth();
-  const { theme } = useTheme();
+  const { user, loading } = useAuth();
 
-  if (error) {
-    return (
-      <View style={[styles.loader, { backgroundColor: theme.background, padding: 32 }]}>
-        <Ionicons name="alert-circle-outline" size={48} color={theme.danger || 'red'} style={{ marginBottom: 16 }} />
-        <Text style={{ color: theme.danger || 'red', fontSize: 18, fontWeight: '700', marginBottom: 8, textAlign: 'center' }}>Error</Text>
-        <Text style={{ color: theme.text || '#333', fontSize: 16, textAlign: 'center' }}>{error}</Text>
-      </View>
-    );
-  }
+  if (loading) return <SplashScreen />;
 
   return (
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {user ? (
-          <Stack.Screen name="Main" component={MainTabs} />
+          <>
+            <Stack.Screen name="Main"  component={MainTabs}  />
+            <Stack.Screen name="AskAI" component={AskAIScreen} />
+          </>
         ) : (
           <>
             <Stack.Screen name="SignIn" component={SignInScreen} />
@@ -190,6 +213,16 @@ const AppNavigator = () => {
 };
 
 const styles = StyleSheet.create({
+  splash: {
+    flex: 1,
+    alignItems:     'center',
+    justifyContent: 'center',
+    gap:            SPACING.sm,
+  },
+  splashLogo:    { width: 96, height: 96, marginBottom: SPACING.sm },
+  splashTitle:   { fontSize: FONT_SIZES['2xl'], fontWeight: '800', letterSpacing: -0.5 },
+  splashSub:     { fontSize: FONT_SIZES.sm },
+  splashSpinner: { marginTop: SPACING.xl },
   themeBtn: {
     marginRight: SPACING.base,
     padding:     SPACING.xs,

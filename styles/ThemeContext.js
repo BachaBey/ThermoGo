@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export const lightTheme = {
   mode: 'light',
@@ -28,6 +29,7 @@ export const lightTheme = {
   // Navbar
   navBg: '#FFFFFF',
   navBorder: '#DDE3EA',
+  navText: '#0D1B2A',
   // Card shadow
   shadowColor: '#000',
   shadowOpacity: 0.06,
@@ -55,6 +57,7 @@ export const darkTheme = {
   infoBg: '#0D2535',
   navBg: '#161B22',
   navBorder: '#30363D',
+  navText: '#E6EDF3',
   shadowColor: '#000',
   shadowOpacity: 0.3,
 };
@@ -65,10 +68,28 @@ const ThemeContext = createContext({
   toggleTheme: () => {},
 });
 
+const THEME_KEY = 'thermogo_theme';
+
 export const ThemeProvider = ({ children }) => {
   const [isDark, setIsDark] = useState(false);
+  const [ready,  setReady]  = useState(false);
 
-  const toggleTheme = () => setIsDark(prev => !prev);
+  // Load saved preference on mount
+  useEffect(() => {
+    AsyncStorage.getItem(THEME_KEY)
+      .then(val => { if (val === 'dark') setIsDark(true); })
+      .finally(() => setReady(true));
+  }, []);
+
+  const toggleTheme = () => {
+    setIsDark(prev => {
+      const next = !prev;
+      AsyncStorage.setItem(THEME_KEY, next ? 'dark' : 'light').catch(() => {});
+      return next;
+    });
+  };
+
+  if (!ready) return null;
 
   return (
     <ThemeContext.Provider value={{ theme: isDark ? darkTheme : lightTheme, isDark, toggleTheme }}>

@@ -66,7 +66,7 @@ export const getProfile = async (userId) => {
     .from('profiles')
     .select('*')
     .eq('id', userId)
-    .single();
+    .maybeSingle();
   return { data, error };
 };
 
@@ -144,7 +144,7 @@ export const getLatestReading = async (deviceUuid) => {
     .eq('device_id', deviceUuid)
     .order('created_at', { ascending: false })
     .limit(1)
-    .single();
+    .maybeSingle();
   return { data, error };
 };
 
@@ -174,12 +174,12 @@ export const getSensorHistory = async (deviceUuid, startDate = null, endDate = n
  * @param {(payload: { new: object }) => void} onInsert
  * @returns channel — call channel.unsubscribe() on component unmount
  */
-export const subscribeToSensorReadings = (onInsert) => {
+export const subscribeToSensorReadings = (deviceId, onInsert) => {
   const channel = supabase
-    .channel('sensor-updates')
+    .channel(`sensor-updates-${deviceId}`)
     .on(
       'postgres_changes',
-      { event: 'INSERT', schema: 'public', table: 'sensor_readings' },
+      { event: 'INSERT', schema: 'public', table: 'sensor_readings', filter: `device_id=eq.${deviceId}` },
       (payload) => onInsert(payload)
     )
     .subscribe();
@@ -190,9 +190,9 @@ export const subscribeToSensorReadings = (onInsert) => {
  * Subscribe to INSERT / DELETE on devices table.
  * Useful for auto-refreshing the device list.
  */
-export const subscribeToDevices = (onChange) => {
+export const subscribeToDevices = (userId, onChange) => {
   const channel = supabase
-    .channel('device-updates')
+    .channel(`device-updates-${userId}`)
     .on(
       'postgres_changes',
       { event: '*', schema: 'public', table: 'devices' },
@@ -212,7 +212,8 @@ export const getNotifications = async (userId) => {
     .from('notifications')
     .select('*, devices(device_id, name)')
     .eq('user_id', userId)
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
+    .limit(20);
   return { data, error };
 };
 

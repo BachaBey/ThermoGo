@@ -1,13 +1,16 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, Image,
-  KeyboardAvoidingView, Platform, TouchableOpacity,
+  KeyboardAvoidingView, Platform, TouchableOpacity, Keyboard,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { signIn } from '../services/supabase';
 import { useTheme } from '../styles/ThemeContext';
 import { Button, Input } from '../components/UI';
 import { FONT_SIZES, SPACING, RADIUS, CONTENT_MAX_WIDTH } from '../styles/typography';
+
+const LOGO_LIGHT = require('../assets/logo.png');
+const LOGO_DARK  = require('../assets/logo-dark.png');
 
 const SignInScreen = ({ navigation }) => {
   const { theme, isDark, toggleTheme } = useTheme();
@@ -17,6 +20,7 @@ const SignInScreen = ({ navigation }) => {
   const [error,    setError]    = useState('');
 
   const handleSignIn = async () => {
+    Keyboard.dismiss();
     setError('');
     if (!email || !password) { setError('Please fill in all fields.'); return; }
     setLoading(true);
@@ -43,11 +47,10 @@ const SignInScreen = ({ navigation }) => {
 
         {/* Hero — brand logo */}
         <View style={styles.hero}>
-          <Image
-            source={require('../assets/logo.png')}
-            style={styles.logo}
-            resizeMode="contain"
-          />
+          {isDark
+            ? <Image source={LOGO_DARK}  style={styles.logo} resizeMode="contain" />
+            : <Image source={LOGO_LIGHT} style={styles.logo} resizeMode="contain" />
+          }
           <Text style={[styles.tagline, { color: theme.textSecondary }]}>
             Real-time temperature monitoring
           </Text>

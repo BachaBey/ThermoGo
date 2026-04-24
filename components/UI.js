@@ -84,6 +84,8 @@ export const Input = ({
   autoCapitalize = 'none',
   error,
   style,
+  inputStyle,
+  noBorder = false,
 }) => {
   const { theme } = useTheme();
 
@@ -104,7 +106,9 @@ export const Input = ({
             backgroundColor: theme.surfaceAlt,
             borderColor: error ? theme.danger : theme.border,
             color: theme.text,
+            ...(noBorder && { borderWidth: 0, backgroundColor: 'transparent' }),
           },
+          inputStyle,
         ]}
       />
       {error && <Text style={[styles.errorText, { color: theme.danger }]}>{error}</Text>}

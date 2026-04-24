@@ -7,6 +7,7 @@
     "icon": "./assets/icon-nav.png",
     "userInterfaceStyle": "automatic",
     "splash": {
+      "image": "./assets/icon-nav.png",
       "resizeMode": "contain",
       "backgroundColor": "#006C95"
     },
@@ -15,7 +16,10 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.thermogo.app"
+      "bundleIdentifier": "com.thermogo.app",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -35,13 +39,13 @@
       "description": "Monitor your temperature and humidity sensors in real time."
     },
     "plugins": [
-      "expo-font",
-      [
-        "expo-camera",
-        {
-          "cameraPermission": "Allow ThermoGo to use the camera to scan device QR codes."
-        }
-      ]
-    ]
+      "expo-font"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "2e48eb78-3241-46bc-bda0-e79dc29914a2"
+      }
+    },
+    "owner": "bachabey"
   }
 }

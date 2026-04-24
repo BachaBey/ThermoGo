@@ -3,6 +3,7 @@ import {
   Text, TouchableOpacity, StyleSheet,
   ActivityIndicator, View, Platform, Image,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator }  from '@react-navigation/native-stack';
 import { createBottomTabNavigator }    from '@react-navigation/bottom-tabs';
@@ -64,6 +65,7 @@ const AddDeviceTabIcon = ({ focused, color, primaryColor }) => (
 // ─── Main tab navigator ───────────────────────────────────────────────────────
 const MainTabs = () => {
   const { theme, isDark, toggleTheme } = useTheme();
+  const { bottom: bottomInset } = useSafeAreaInsets();
 
   const headerRight = () => (
     <TouchableOpacity onPress={toggleTheme} style={styles.themeBtn}>
@@ -97,9 +99,9 @@ const MainTabs = () => {
           backgroundColor:  theme.navBg,
           borderTopColor:   theme.navBorder,
           borderTopWidth:   1,
-          paddingBottom:    Platform.OS === 'ios' ? 20 : 6,
-          paddingTop:       6,
-          height:           Platform.OS === 'ios' ? 88 : 64,
+          paddingBottom:    bottomInset > 0 ? bottomInset : 8,
+          paddingTop:       8,
+          height:           52 + (bottomInset > 0 ? bottomInset : 8),
         },
         tabBarActiveTintColor:   theme.primary,
         tabBarInactiveTintColor: theme.textMuted,
@@ -244,7 +246,7 @@ const styles = StyleSheet.create({
     borderRadius:   27,
     alignItems:     'center',
     justifyContent: 'center',
-    marginBottom:   Platform.OS === 'ios' ? 10 : 16,
+    marginBottom:   8,
     // Shadow — iOS
     shadowOffset:   { width: 0, height: 4 },
     shadowOpacity:  0.35,

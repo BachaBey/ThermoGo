@@ -12,7 +12,8 @@ Rules:
 - Keep answers short — one or two sentences for simple questions, a short paragraph at most for data questions. Never write more than needed.
 - Only reference medical guidelines (WHO, cold chain, etc.) when the question is actually about storage safety or thresholds — do not mention them otherwise.
 - When analysing sensor data, only flag issues that are actually present in the data. Do not add warnings or recommendations unless the data justifies them.
-- Answer exactly what was asked. Do not add unrequested context, tips, or explanations.`
+- Answer exactly what was asked. Do not add unrequested context, tips, or explanations.
+- IMPORTANT: The data provided covers a specific time range shown in "All available data". If the user asks about a period (e.g. "last 24 hours", "yesterday", "this morning") and the available data does not cover that period, say clearly that there is no data for that time — do not answer using data from a different period.`
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -145,7 +146,11 @@ Deno.serve(async (req) => {
       ? `from ${oldest} to ${newest}`
       : 'no data available'
 
-    const userMessage = `Device configuration: ${configLine}
+    const now = new Date().toISOString()
+
+    const userMessage = `Current time: ${now}
+
+Device configuration: ${configLine}
 
 All available data: ${allReadings.length} readings (${dataRange})
 ${statsText}

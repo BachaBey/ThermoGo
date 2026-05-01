@@ -79,8 +79,12 @@ const AskAIScreen = ({ navigation, route }) => {
   const [input,    setInput]    = useState('');
   const [loading,  setLoading]  = useState(false);
 
-  const listRef    = useRef(null);
-  const loadingRef = useRef(false);
+  const listRef      = useRef(null);
+  const loadingRef   = useRef(false);
+  const messagesRef  = useRef([]);
+
+  // Keep ref in sync so sendQuestion always reads latest history
+  useEffect(() => { messagesRef.current = messages; }, [messages]);
 
   // Style the navigation header to match the app's tab bar header
   useLayoutEffect(() => {
@@ -101,6 +105,11 @@ const AskAIScreen = ({ navigation, route }) => {
     const trimmed = question.trim();
     if (!trimmed || loadingRef.current || !deviceId) return;
 
+    // Snapshot history before appending the new user message
+    const history = messagesRef.current
+      .filter(m => m.role === 'user' || m.role === 'ai')
+      .map(m => ({ role: m.role, text: m.text }));
+
     // Append user message immediately
     setMessages(prev => [...prev, { id: `u-${Date.now()}`, role: 'user', text: trimmed }]);
     setInput('');
@@ -109,7 +118,7 @@ const AskAIScreen = ({ navigation, route }) => {
 
     try {
       const { data, error } = await supabase.functions.invoke('ask-ai', {
-        body: { device_id: deviceId, question: trimmed },
+        body: { device_id: deviceId, question: trimmed, history },
       });
 
       if (error) throw error;

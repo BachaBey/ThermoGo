@@ -21,7 +21,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { device_id, question } = await req.json()
+    const { device_id, question, history = [] } = await req.json()
 
     if (!device_id || !question) {
       return new Response(
@@ -120,7 +120,7 @@ Deno.serve(async (req) => {
             .join('\n')
         : '(no readings available)'
 
-    // ── 5. Assemble user message ──────────────────────────────────────────────
+    // ── 5. Build sensor context block (injected into system instruction) ────────
     const configLine =
       [
         device.target_temp != null
@@ -148,19 +148,29 @@ Deno.serve(async (req) => {
 
     const now = new Date().toISOString()
 
-    const userMessage = `Current time: ${now}
-
+    const sensorContext = `--- Device data (available throughout this conversation) ---
+Current time: ${now}
 Device configuration: ${configLine}
-
 All available data: ${allReadings.length} readings (${dataRange})
 ${statsText}
 
 ${sampled.length} evenly-spaced samples across the full data range (oldest → newest):
 ${readingsText}
+--- End of device data ---`
 
-User question: ${question}`
+    // ── 6. Build multi-turn contents from history + new question ─────────────
+    const contents: { role: string; parts: { text: string }[] }[] = []
 
-    // ── 6. Call Gemini API ────────────────────────────────────────────────────
+    for (const msg of history) {
+      contents.push({
+        role: msg.role === 'ai' ? 'model' : 'user',
+        parts: [{ text: msg.text }],
+      })
+    }
+
+    contents.push({ role: 'user', parts: [{ text: question }] })
+
+    // ── 7. Call Gemini API ────────────────────────────────────────────────────
     const geminiKey = Deno.env.get('GEMINI_API_KEY')!
     const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`
 
@@ -169,11 +179,9 @@ User question: ${question}`
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         system_instruction: {
-          parts: [{ text: SYSTEM_PROMPT }],
+          parts: [{ text: SYSTEM_PROMPT + '\n\n' + sensorContext }],
         },
-        contents: [
-          { role: 'user', parts: [{ text: userMessage }] },
-        ],
+        contents,
         generationConfig: { maxOutputTokens: 8192 },
       }),
     })

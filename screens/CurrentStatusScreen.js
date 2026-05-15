@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity,
+  View, Text, StyleSheet, ScrollView, RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../styles/ThemeContext';
@@ -81,7 +81,7 @@ const getHumidityLabel = (h, device) => {
 // ─── Screen ───────────────────────────────────────────────────────────────────
 const CurrentStatusScreen = ({ navigation }) => {
   const { theme } = useTheme();
-  const { user, profile } = useAuth();
+  const { user, profile, setSelectedDeviceId } = useAuth();
 
   const [devices,        setDevices]        = useState([]);
   const [selectedDevice, setSelectedDevice] = useState(null);
@@ -122,6 +122,11 @@ const CurrentStatusScreen = ({ navigation }) => {
     const unsub = navigation?.addListener('focus', loadDevices);
     return unsub;
   }, [loadDevices]);
+
+  // Keep global selected device ID in sync
+  useEffect(() => {
+    setSelectedDeviceId(selectedDevice?.id ?? null);
+  }, [selectedDevice, setSelectedDeviceId]);
 
   // ── Fetch latest reading for selected device ───────────────────────────────
   const fetchReading = useCallback(async () => {
@@ -277,14 +282,6 @@ const CurrentStatusScreen = ({ navigation }) => {
                   ))}
                 </Card>
 
-                {/* Ask AI button */}
-                <TouchableOpacity
-                  style={[styles.askAiBtn, { backgroundColor: theme.primary }]}
-                  onPress={() => navigation.navigate('AskAI', { deviceId: selectedDevice.id })}
-                >
-                  <Ionicons name="sparkles-outline" size={18} color="#fff" />
-                  <Text style={styles.askAiText}>Ask AI about this device</Text>
-                </TouchableOpacity>
               </>
             ) : (
               <Card>
@@ -324,16 +321,6 @@ const styles = StyleSheet.create({
   infoKey: { fontSize: FONT_SIZES.sm },
   infoValue: { fontSize: FONT_SIZES.sm, fontWeight: '600', textAlign: 'right', flex: 1, marginLeft: SPACING.sm },
   loadingText: { textAlign: 'center', marginTop: SPACING.xl },
-  askAiBtn: {
-    flexDirection:  'row',
-    alignItems:     'center',
-    justifyContent: 'center',
-    gap:            SPACING.xs,
-    borderRadius:   RADIUS.lg,
-    paddingVertical: SPACING.md,
-    marginTop:      SPACING.sm,
-  },
-  askAiText: { color: '#fff', fontSize: FONT_SIZES.base, fontWeight: '700' },
   errorBanner: {
     flexDirection: 'row', alignItems: 'center', gap: SPACING.xs,
     borderWidth: 1, borderRadius: RADIUS.md,

@@ -2,7 +2,7 @@ import React, { useState, useRef, useLayoutEffect, useCallback, useEffect } from
 import {
   View, Text, StyleSheet, FlatList, TextInput,
   TouchableOpacity, KeyboardAvoidingView, Platform,
-  ActivityIndicator,
+  ActivityIndicator, Keyboard,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../styles/ThemeContext';
@@ -86,6 +86,16 @@ const AskAIScreen = ({ navigation, route }) => {
   // Keep ref in sync so sendQuestion always reads latest history
   useEffect(() => { messagesRef.current = messages; }, [messages]);
 
+  const scrollToBottom = useCallback(() => {
+    listRef.current?.scrollToEnd({ animated: true });
+  }, []);
+
+  // Scroll to bottom whenever keyboard appears so messages stay visible
+  useEffect(() => {
+    const sub = Keyboard.addListener('keyboardDidShow', scrollToBottom);
+    return () => sub.remove();
+  }, [scrollToBottom]);
+
   // Style the navigation header to match the app's tab bar header
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -96,10 +106,6 @@ const AskAIScreen = ({ navigation, route }) => {
       headerTintColor:  theme.navText,
     });
   }, [navigation, theme]);
-
-  const scrollToBottom = useCallback(() => {
-    listRef.current?.scrollToEnd({ animated: true });
-  }, []);
 
   const sendQuestion = useCallback(async (question) => {
     const trimmed = question.trim();
@@ -155,8 +161,8 @@ const AskAIScreen = ({ navigation, route }) => {
   return (
     <KeyboardAvoidingView
       style={{ flex: 1, backgroundColor: theme.background }}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+      behavior="padding"
+      keyboardVerticalOffset={90}
     >
       {/* ── Message list ── */}
       <FlatList

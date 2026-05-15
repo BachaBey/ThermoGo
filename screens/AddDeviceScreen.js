@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView,
+  View, Text, TextInput, StyleSheet, ScrollView,
   KeyboardAvoidingView, Platform, TouchableOpacity,
   Alert, Modal, Pressable, ActivityIndicator, Linking, AppState,
 } from 'react-native';
@@ -76,13 +76,13 @@ const NumInput = ({ label, value, onChangeText, suffix, placeholder, theme }) =>
   <View style={ni.wrap}>
     <Text style={[ni.label, { color: theme.textMuted }]}>{label}</Text>
     <View style={[ni.row, { backgroundColor: theme.surfaceAlt, borderColor: theme.border }]}>
-      <Input
+      <TextInput
         value={value}
         onChangeText={(v) => onChangeText(sanitizeNum(v))}
         placeholder={placeholder}
+        placeholderTextColor={theme.textMuted}
         keyboardType="decimal-pad"
-        style={ni.input}
-        noBorder
+        style={[ni.input, { color: theme.text }]}
       />
       <Text style={[ni.suffix, { color: theme.textSecondary }]}>{suffix}</Text>
     </View>
@@ -91,8 +91,8 @@ const NumInput = ({ label, value, onChangeText, suffix, placeholder, theme }) =>
 const ni = StyleSheet.create({
   wrap:   { flex: 1 },
   label:  { fontSize: FONT_SIZES.xs, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 4 },
-  row:    { flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderRadius: RADIUS.md, overflow: 'hidden', paddingRight: SPACING.sm },
-  input:  { flex: 1, borderWidth: 0 },
+  row:    { flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderRadius: RADIUS.md, paddingRight: SPACING.sm },
+  input:  { flex: 1, paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm + 2, fontSize: FONT_SIZES.base },
   suffix: { fontSize: FONT_SIZES.sm, fontWeight: '600' },
 });
 
@@ -492,9 +492,8 @@ const WifiProvisionModal = ({ visible, onClose, onProvisioned, theme }) => {
                           onChangeText={setManualDeviceId}
                           placeholder="a1b2c3"
                           autoCapitalize="none"
-                          autoCorrect={false}
-                          noLabel
-                          style={{ flex: 1, borderWidth: 0, backgroundColor: 'transparent' }}
+                          noBorder
+                          style={{ flex: 1, marginBottom: 0 }}
                         />
                         <TouchableOpacity
                           onPress={() => {
@@ -549,9 +548,8 @@ const WifiProvisionModal = ({ visible, onClose, onProvisioned, theme }) => {
                     onChangeText={setSsid}
                     placeholder="e.g. HomeNetwork"
                     autoCapitalize="none"
-                    autoCorrect={false}
-                    noLabel
-                    style={{ flex: 1, borderWidth: 0, backgroundColor: 'transparent' }}
+                    noBorder
+                    style={{ flex: 1, marginBottom: 0 }}
                   />
                   {ssid.length > 0 && (
                     <TouchableOpacity onPress={() => setSsid('')} style={{ padding: SPACING.sm }}>
@@ -570,9 +568,8 @@ const WifiProvisionModal = ({ visible, onClose, onProvisioned, theme }) => {
                     placeholder="Leave blank for open networks"
                     secureTextEntry={!showPass}
                     autoCapitalize="none"
-                    autoCorrect={false}
-                    noLabel
-                    style={{ flex: 1, borderWidth: 0, backgroundColor: 'transparent' }}
+                    noBorder
+                    style={{ flex: 1, marginBottom: 0 }}
                   />
                   <TouchableOpacity onPress={() => setShowPass(p => !p)} style={{ padding: SPACING.sm }}>
                     <Ionicons
@@ -1008,9 +1005,8 @@ const WifiNetworksSection = ({ deviceId, theme }) => {
               onChangeText={setNewSsid}
               placeholder="e.g. HomeNetwork"
               autoCapitalize="none"
-              autoCorrect={false}
-              noLabel
-              style={{ flex: 1, borderWidth: 0, backgroundColor: 'transparent' }}
+              noBorder
+              style={{ flex: 1, marginBottom: 0 }}
             />
           </View>
 
@@ -1024,9 +1020,8 @@ const WifiNetworksSection = ({ deviceId, theme }) => {
               placeholder="Leave blank for open networks"
               secureTextEntry={!showPass}
               autoCapitalize="none"
-              autoCorrect={false}
-              noLabel
-              style={{ flex: 1, borderWidth: 0, backgroundColor: 'transparent' }}
+              noBorder
+              style={{ flex: 1, marginBottom: 0 }}
             />
             <TouchableOpacity onPress={() => setShowPass(p => !p)} style={{ padding: SPACING.sm }}>
               <Ionicons name={showPass ? 'eye-off-outline' : 'eye-outline'} size={16} color={theme.textMuted} />
@@ -1527,8 +1522,8 @@ const AddDeviceScreen = ({ navigation }) => {
                   onChangeText={(v) => setField('device_id')(v)}
                   placeholder="Auto-filled after provisioning, or type manually"
                   autoCapitalize="none"
-                  noLabel
-                  style={{ borderWidth: 0, backgroundColor: 'transparent' }}
+                  noBorder
+                  style={{ marginBottom: 0 }}
                 />
               )}
             </View>

@@ -6,12 +6,15 @@ const AuthContext = createContext({
   profile: null,
   loading: true,
   refreshProfile: () => {},
+  selectedDeviceId: null,
+  setSelectedDeviceId: () => {},
 });
 
 export const AuthProvider = ({ children }) => {
-  const [user,    setUser]    = useState(null);
-  const [profile, setProfile] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [user,             setUser]             = useState(null);
+  const [profile,          setProfile]          = useState(null);
+  const [loading,          setLoading]          = useState(true);
+  const [selectedDeviceId, setSelectedDeviceId] = useState(null);
 
   const fetchProfile = async (userId) => {
     try {
@@ -45,6 +48,7 @@ export const AuthProvider = ({ children }) => {
         if (event === 'SIGNED_OUT') {
           setUser(null);
           setProfile(null);
+          setSelectedDeviceId(null);
         }
       }
     );
@@ -57,7 +61,7 @@ export const AuthProvider = ({ children }) => {
   }, [user]);
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, refreshProfile }}>
+    <AuthContext.Provider value={{ user, profile, loading, refreshProfile, selectedDeviceId, setSelectedDeviceId }}>
       {children}
     </AuthContext.Provider>
   );

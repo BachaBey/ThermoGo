@@ -21,6 +21,7 @@ import NotificationsScreen    from '../screens/NotificationsScreen';
 import AddDeviceScreen        from '../screens/AddDeviceScreen';
 import ProfileScreen          from '../screens/ProfileScreen';
 import AskAIScreen            from '../screens/AskAIScreen';
+import FloatingAIButton       from '../components/FloatingAIButton';
 
 const Stack = createNativeStackNavigator();
 const Tab   = createBottomTabNavigator();
@@ -63,7 +64,7 @@ const AddDeviceTabIcon = ({ focused, color, primaryColor }) => (
 );
 
 // ─── Main tab navigator ───────────────────────────────────────────────────────
-const MainTabs = () => {
+const MainTabs = ({ navigation }) => {
   const { theme, isDark, toggleTheme } = useTheme();
   const { bottom: bottomInset } = useSafeAreaInsets();
 
@@ -90,6 +91,7 @@ const MainTabs = () => {
   };
 
   return (
+    <View style={{ flex: 1 }}>
     <Tab.Navigator
       screenOptions={({ route }) => ({
         ...sharedHeader,
@@ -151,10 +153,7 @@ const MainTabs = () => {
       <Tab.Screen
         name="AddDevice"
         component={AddDeviceScreen}
-        options={{
-          tabBarLabel: '',          // no label under the big button
-          tabBarStyle: undefined,   // inherits shared style
-        }}
+        options={{ tabBarLabel: '' }}
       />
       <Tab.Screen
         name="Alerts"
@@ -167,6 +166,8 @@ const MainTabs = () => {
         options={{ tabBarLabel: 'Profile' }}
       />
     </Tab.Navigator>
+    <FloatingAIButton navigation={navigation} />
+    </View>
   );
 };
 

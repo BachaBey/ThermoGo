@@ -1272,7 +1272,7 @@ const EditDeviceModal = ({ visible, device, onClose, onSaved, theme }) => {
               <Button title="Save Changes" onPress={handleSave} loading={loading} style={{ marginTop: SPACING.md }} />
 
               {/* ── WiFi Networks Section ── */}
-              <WifiNetworksSection deviceId={device?.device_id} theme={theme} />
+              <WifiNetworksSection deviceId={device?.id} theme={theme} />
 
               <Button title="Close" variant="ghost" onPress={onClose} style={{ marginTop: SPACING.lg, marginBottom: SPACING.xl }} />
             </ScrollView>

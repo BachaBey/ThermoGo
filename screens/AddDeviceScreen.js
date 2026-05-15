@@ -1208,8 +1208,9 @@ const EditDeviceModal = ({ visible, device, onClose, onSaved, theme }) => {
         <Pressable style={[ed.sheet, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={{ flex: 1 }}
           >
-            <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+            <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator>
               <View style={[ed.handle, { backgroundColor: theme.border }]} />
               <View style={ed.header}>
                 <View style={[ed.headerIcon, { backgroundColor: theme.primaryLight }]}>
